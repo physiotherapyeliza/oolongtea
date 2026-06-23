@@ -27,8 +27,6 @@
   try {
     firebase.initializeApp(firebaseConfig);
     window.__db = firebase.firestore();
-    // 這份資料存在哪：collection "appData" 裡的一份文件 "shared"
-    window.__cloudDocRef = window.__db.collection("appData").doc("shared");
   } catch (e) {
     console.warn("Firebase 初始化失敗，將只使用本機儲存", e);
     window.__db = null;
@@ -475,9 +473,10 @@ const ReadOnlyTeaSoupEvalChart = ({ evalData, isBlackTea, title = '茶湯分數�
 // === 資料持久化 (localStorage) ===
 const STORAGE_KEY = 'teaApp.v1';
 
-const loadState = () => {
+const loadState = (userId) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = userId ? (STORAGE_KEY + '.' + userId) : STORAGE_KEY;
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (e) {
@@ -485,8 +484,8 @@ const loadState = () => {
   }
 };
 
-function App() {
-  const __saved = loadState();
+function App({ userId, userName, onSwitchUser }) {
+  const __saved = loadState(userId);
   const [activeTab, setActiveTab] = useState('teas');
 
   const [teas, setTeas] = useState(__saved?.teas ?? INITIAL_TEAS);
@@ -498,6 +497,9 @@ function App() {
   const [expandedTeas, setExpandedTeas] = useState({});
   const [expandedBrews, setExpandedBrews] = useState({});
 
+  // 這位使用者專屬的雲端文件
+  const cloudDocRef = window.__db ? window.__db.collection("appData").doc("user_" + userId) : null;
+
   // === 雲端同步狀態 ===
   // syncStatus: 'loading' 讀取中 | 'synced' 已同步 | 'saving' 儲存中 | 'offline' 離線/未連雲端 | 'error' 錯誤
   const [syncStatus, setSyncStatus] = useState(window.__db ? 'loading' : 'offline');
@@ -507,8 +509,8 @@ function App() {
 
   // 開啟 App 時：先讀雲端，並持續監聽雲端變動（其他裝置改了會自動更新過來）
   useEffect(() => {
-    if (!window.__cloudDocRef) { setSyncStatus('offline'); return; }
-    const unsub = window.__cloudDocRef.onSnapshot(
+    if (!cloudDocRef) { setSyncStatus('offline'); return; }
+    const unsub = cloudDocRef.onSnapshot(
       (snap) => {
         if (snap.exists) {
           const d = snap.data();
@@ -529,20 +531,20 @@ function App() {
     );
     return () => unsub && unsub();
   // eslint-disable-next-line
-  }, []);
+  }, [userId]);
 
   // 資料變動時：存回 localStorage（即時備份）+ 推到雲端（debounce 防止太頻繁）
   useEffect(() => {
-    // 本機備份
+    // 本機備份（每位使用者各自一份）
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ teas, evals, logs, wares }));
+      localStorage.setItem(STORAGE_KEY + '.' + userId, JSON.stringify({ teas, evals, logs, wares }));
       setStorageFull(false);
     } catch (e) {
       setStorageFull(true);
     }
 
     // 雲端同步
-    if (!window.__cloudDocRef) return;
+    if (!cloudDocRef) return;
     // 若這次變動是「雲端推下來的」，就不要再寫回雲端
     if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
     // 首次雲端資料還沒讀回來前，先別覆蓋雲端（避免用初始資料蓋掉雲端既有資料）
@@ -551,7 +553,7 @@ function App() {
     setSyncStatus('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      window.__cloudDocRef.set({ teas, evals, logs, wares, updatedAt: Date.now() })
+      cloudDocRef.set({ teas, evals, logs, wares, updatedAt: Date.now() })
         .then(() => setSyncStatus('synced'))
         .catch((err) => { console.warn('雲端儲存失敗', err); setSyncStatus('error'); });
     }, 800);
@@ -688,7 +690,7 @@ function App() {
   };
 
   const confirmReset = () => {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    try { localStorage.removeItem(STORAGE_KEY + '.' + userId); } catch (e) {}
     setTeas(INITIAL_TEAS);
     setEvals(INITIAL_EVALS);
     setLogs(INITIAL_LOGS);
@@ -696,8 +698,8 @@ function App() {
     setShowResetConfirm(false);
     setStorageFull(false);
     // 同步把雲端也重設（避免重新整理後雲端又把舊資料推回來）
-    if (window.__cloudDocRef && cloudReadyRef.current) {
-      window.__cloudDocRef.set({
+    if (cloudDocRef && cloudReadyRef.current) {
+      cloudDocRef.set({
         teas: INITIAL_TEAS, evals: INITIAL_EVALS, logs: INITIAL_LOGS, wares: INITIAL_WARES, updatedAt: Date.now()
       }).catch((err) => console.warn('雲端重設失敗', err));
     }
@@ -976,6 +978,15 @@ function App() {
               );
             })}
           </nav>
+          <button
+            onClick={onSwitchUser}
+            title="切換使用者"
+            className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-sm text-sm transition-colors"
+            style={{ color: 'rgba(244,239,228,0.85)', border: '1px solid rgba(244,239,228,0.3)' }}
+          >
+            <User className="w-4 h-4" />
+            <span className="hidden md:inline tracking-widest max-w-[7rem] truncate">{userName}</span>
+          </button>
         </div>
       </header>
 
@@ -2458,8 +2469,174 @@ function App() {
 }
 
 
+// ====== 使用者選擇層（Netflix 式選 profile） ======
+const USERS_KEY = 'teaApp.users';
+const LAST_USER_KEY = 'teaApp.lastUser';
+const usersDocRef = window.__db ? window.__db.collection("appData").doc("__users") : null;
+
+function genId() {
+  return 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function Root() {
+  const [users, setUsers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; } catch (e) { return []; }
+  });
+  const [currentUser, setCurrentUser] = useState(null); // 已選的使用者物件
+  const [usersReady, setUsersReady] = useState(!usersDocRef); // 沒雲端就直接 ready
+  const [newName, setNewName] = useState('');
+  const [manageMode, setManageMode] = useState(false);
+  const skipUsersSave = useRef(false);
+
+  // 監聽雲端使用者清單（多裝置共用同一份名單）
+  useEffect(() => {
+    if (!usersDocRef) return;
+    const unsub = usersDocRef.onSnapshot((snap) => {
+      if (snap.exists && Array.isArray(snap.data().list)) {
+        skipUsersSave.current = true;
+        setUsers(snap.data().list);
+      }
+      setUsersReady(true);
+    }, (err) => { console.warn('讀取使用者清單失敗', err); setUsersReady(true); });
+    return () => unsub && unsub();
+  }, []);
+
+  // 使用者清單變動 → 存本機 + 推雲端
+  useEffect(() => {
+    try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch (e) {}
+    if (!usersDocRef) return;
+    if (skipUsersSave.current) { skipUsersSave.current = false; return; }
+    if (!usersReady) return;
+    usersDocRef.set({ list: users, updatedAt: Date.now() })
+      .catch((err) => console.warn('儲存使用者清單失敗', err));
+  }, [users]);
+
+  const addUser = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const u = { id: genId(), name };
+    const isFirst = users.length === 0;
+    setUsers(prev => [...prev, u]);
+    setNewName('');
+    // 若這是第一位使用者，把舊版「共用」資料搬進他的帳號，避免既有紀錄遺失
+    if (isFirst && window.__db) {
+      const oldRef = window.__db.collection("appData").doc("shared");
+      oldRef.get().then(snap => {
+        if (snap.exists) {
+          const d = snap.data();
+          window.__db.collection("appData").doc("user_" + u.id)
+            .set({ teas: d.teas || [], evals: d.evals || [], logs: d.logs || [], wares: d.wares || [], updatedAt: Date.now() })
+            .catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  };
+
+  const removeUser = (id) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    // 一併清掉該使用者的雲端資料
+    if (window.__db) {
+      window.__db.collection("appData").doc("user_" + id).delete().catch(() => {});
+    }
+    try { localStorage.removeItem(STORAGE_KEY + '.' + id); } catch (e) {}
+  };
+
+  const pickUser = (u) => {
+    setCurrentUser(u);
+    try { localStorage.setItem(LAST_USER_KEY, u.id); } catch (e) {}
+  };
+
+  const switchUser = () => {
+    setCurrentUser(null);
+    setManageMode(false);
+  };
+
+  // 已選好使用者 → 進入主 App
+  if (currentUser) {
+    return <App userId={currentUser.id} userName={currentUser.name} onSwitchUser={switchUser} />;
+  }
+
+  // 還在等雲端首次載入
+  if (!usersReady) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--paper)' }} className="flex items-center justify-center">
+        <div className="text-stone-400 tracking-widest">載入中…</div>
+      </div>
+    );
+  }
+
+  // 使用者選擇畫面
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--paper)' }} className="flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex items-center gap-2.5 mb-2">
+        <Coffee className="w-7 h-7" style={{ color: 'var(--celadon-deep)' }} />
+        <h1 className="text-3xl tracking-[0.3em] font-shoujin" style={{ fontWeight: 600, color: 'var(--ink)' }}>三韻半盞</h1>
+      </div>
+      <p className="text-stone-400 text-sm tracking-widest mb-10">請選擇使用者</p>
+
+      <div className="flex flex-wrap items-center justify-center gap-5 max-w-2xl">
+        {users.map(u => (
+          <div key={u.id} className="relative flex flex-col items-center">
+            <button
+              onClick={() => manageMode ? null : pickUser(u)}
+              className="w-24 h-24 rounded-full flex items-center justify-center transition-transform hover:scale-105 shadow-md"
+              style={{ background: 'var(--celadon)', color: 'var(--paper)' }}
+            >
+              <span className="text-3xl font-shoujin" style={{ fontWeight: 600 }}>{u.name.slice(0, 1)}</span>
+            </button>
+            <span className="mt-2.5 text-sm tracking-wider text-stone-600 max-w-[6rem] truncate">{u.name}</span>
+            {manageMode && (
+              <button
+                onClick={() => removeUser(u.id)}
+                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center shadow"
+                title="刪除此使用者"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ))}
+
+        {/* 新增使用者 */}
+        {!manageMode && (
+          <div className="flex flex-col items-center">
+            <div className="w-24 h-24 rounded-full flex flex-col items-center justify-center gap-1 border-2 border-dashed" style={{ borderColor: 'var(--line)' }}>
+              <input
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addUser(); }}
+                placeholder="名字"
+                className="w-16 text-center text-xs bg-transparent outline-none text-stone-600 placeholder-stone-300"
+              />
+              <button onClick={addUser} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--celadon-deep)', color: 'var(--paper)' }} title="新增使用者">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <span className="mt-2.5 text-sm tracking-wider text-stone-400">新增</span>
+          </div>
+        )}
+      </div>
+
+      {users.length > 0 && (
+        <button
+          onClick={() => setManageMode(m => !m)}
+          className="mt-12 text-xs tracking-widest text-stone-400 hover:text-stone-600 underline underline-offset-4"
+        >
+          {manageMode ? '完成' : '管理使用者'}
+        </button>
+      )}
+
+      {!window.__db && (
+        <p className="mt-8 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          目前未連上雲端，使用者與資料僅存於這台裝置。
+        </p>
+      )}
+    </div>
+  );
+}
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+root.render(<Root />);
 </script>
 </body>
 </html>
