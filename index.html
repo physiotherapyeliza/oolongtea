@@ -9,6 +9,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- ====== Firebase 雲端同步 ====== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // 你的 Firebase 專案設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyB08r3Re3NplUbHVZ6NgL_m0dR4f9F-OME",
+    authDomain: "oolongtea-75de7.firebaseapp.com",
+    projectId: "oolongtea-75de7",
+    storageBucket: "oolongtea-75de7.firebasestorage.app",
+    messagingSenderId: "783629034443",
+    appId: "1:783629034443:web:21075cf8475286718e8c4e",
+    measurementId: "G-NMFF8GDMP1"
+  };
+  try {
+    firebase.initializeApp(firebaseConfig);
+    window.__db = firebase.firestore();
+    // 這份資料存在哪：collection "appData" 裡的一份文件 "shared"
+    window.__cloudDocRef = window.__db.collection("appData").doc("shared");
+  } catch (e) {
+    console.warn("Firebase 初始化失敗，將只使用本機儲存", e);
+    window.__db = null;
+  }
+</script>
+
 <style>
   html, body, #root { height: 100%; margin: 0; }
   :root {
@@ -472,15 +498,63 @@ function App() {
   const [expandedTeas, setExpandedTeas] = useState({});
   const [expandedBrews, setExpandedBrews] = useState({});
 
-  // 資料變動時自動存回 localStorage
+  // === 雲端同步狀態 ===
+  // syncStatus: 'loading' 讀取中 | 'synced' 已同步 | 'saving' 儲存中 | 'offline' 離線/未連雲端 | 'error' 錯誤
+  const [syncStatus, setSyncStatus] = useState(window.__db ? 'loading' : 'offline');
+  const cloudReadyRef = useRef(false);   // 是否已完成首次雲端讀取
+  const skipNextSaveRef = useRef(false); // 收到雲端更新時，避免又立刻寫回造成循環
+  const saveTimerRef = useRef(null);     // debounce 計時器
+
+  // 開啟 App 時：先讀雲端，並持續監聽雲端變動（其他裝置改了會自動更新過來）
   useEffect(() => {
+    if (!window.__cloudDocRef) { setSyncStatus('offline'); return; }
+    const unsub = window.__cloudDocRef.onSnapshot(
+      (snap) => {
+        if (snap.exists) {
+          const d = snap.data();
+          skipNextSaveRef.current = true; // 這次更新來自雲端，不要再寫回
+          if (Array.isArray(d.teas))  setTeas(d.teas);
+          if (Array.isArray(d.evals)) setEvals(d.evals);
+          if (Array.isArray(d.logs))  setLogs(d.logs);
+          if (Array.isArray(d.wares)) setWares(d.wares);
+        }
+        cloudReadyRef.current = true;
+        setSyncStatus('synced');
+      },
+      (err) => {
+        console.warn('雲端讀取失敗', err);
+        cloudReadyRef.current = true;
+        setSyncStatus('error');
+      }
+    );
+    return () => unsub && unsub();
+  // eslint-disable-next-line
+  }, []);
+
+  // 資料變動時：存回 localStorage（即時備份）+ 推到雲端（debounce 防止太頻繁）
+  useEffect(() => {
+    // 本機備份
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ teas, evals, logs, wares }));
       setStorageFull(false);
     } catch (e) {
-      // 多半是容量超過上限（照片太多）
       setStorageFull(true);
     }
+
+    // 雲端同步
+    if (!window.__cloudDocRef) return;
+    // 若這次變動是「雲端推下來的」，就不要再寫回雲端
+    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
+    // 首次雲端資料還沒讀回來前，先別覆蓋雲端（避免用初始資料蓋掉雲端既有資料）
+    if (!cloudReadyRef.current) return;
+
+    setSyncStatus('saving');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      window.__cloudDocRef.set({ teas, evals, logs, wares, updatedAt: Date.now() })
+        .then(() => setSyncStatus('synced'))
+        .catch((err) => { console.warn('雲端儲存失敗', err); setSyncStatus('error'); });
+    }, 800);
   }, [teas, evals, logs, wares]);
 
   const [showAddTea, setShowAddTea] = useState(false);
@@ -621,6 +695,12 @@ function App() {
     setWares(INITIAL_WARES);
     setShowResetConfirm(false);
     setStorageFull(false);
+    // 同步把雲端也重設（避免重新整理後雲端又把舊資料推回來）
+    if (window.__cloudDocRef && cloudReadyRef.current) {
+      window.__cloudDocRef.set({
+        teas: INITIAL_TEAS, evals: INITIAL_EVALS, logs: INITIAL_LOGS, wares: INITIAL_WARES, updatedAt: Date.now()
+      }).catch((err) => console.warn('雲端重設失敗', err));
+    }
   };
 
   const getTeaContextForLog = (teaId) => {
@@ -857,6 +937,22 @@ function App() {
           <div className="flex items-center gap-2.5">
             <Coffee className="w-6 h-6" style={{ color: 'var(--paper)', opacity: 0.85 }} />
             <h1 className="text-2xl tracking-[0.3em] font-shoujin" style={{ fontWeight: 600 }}>三韻半盞</h1>
+            {(() => {
+              const map = {
+                loading: { t: '雲端讀取中…', c: 'rgba(244,239,228,0.55)' },
+                saving:  { t: '同步中…',     c: 'rgba(244,239,228,0.7)' },
+                synced:  { t: '已同步雲端',   c: 'rgba(244,239,228,0.7)' },
+                offline: { t: '本機儲存',     c: 'rgba(244,239,228,0.5)' },
+                error:   { t: '雲端連線失敗', c: '#e8b4a0' },
+              };
+              const s = map[syncStatus] || map.offline;
+              return (
+                <span className="hidden sm:inline-flex items-center gap-1 ml-2 text-[11px] tracking-wider" style={{ color: s.c }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: syncStatus === 'error' ? '#cc6b52' : (syncStatus === 'synced' ? '#9fd0a8' : 'currentColor'), opacity: 0.9 }} />
+                  {s.t}
+                </span>
+              );
+            })()}
           </div>
           <nav className="flex items-center gap-1">
             {NAV.map(item => {
