@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>三韻半盞</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  :root {
+    --paper: #f4efe4;     /* 宣紙米白 */
+    --ink: #3a352c;       /* 墨 */
+    --ink-soft: #8c8472;  /* 淡墨 */
+    --celadon: #7a9a86;   /* 青瓷 */
+    --celadon-deep: #5a6e5e; /* 深青瓷 */
+    --line: #d8cfba;      /* 淡欄線 */
+  }
+  body { font-family: "Songti TC", "Songti SC", "宋體", "STSong", "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", "Microsoft JhengHei", serif; color: var(--ink); }
+  .animate-in { animation: fadeSlide .2s ease-out; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  input[type=range].accent-emerald-600 { accent-color: #7a9a86; }
+  /* 卡片用系統宋體／明體（衬線），一定可顯示 */
+  .font-shoujin { font-family: "Songti TC", "Songti SC", "宋體", "STSong", "SimSun", "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", "Microsoft JhengHei", serif; }
+
+  /* ====== 宋式風格覆蓋層 ====== */
+  /* 全站字體走宋體 */
+  .font-sans, body, button, input, select, textarea { font-family: "Songti TC", "Songti SC", "宋體", "STSong", "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", "Microsoft JhengHei", serif !important; }
+
+  /* 背景 stone-100 -> 宣紙 */
+  .bg-stone-100 { background-color: var(--paper) !important; }
+
+  /* emerald 主色系 -> 青瓷 */
+  .bg-emerald-700, .bg-emerald-600, .bg-emerald-800 { background-color: var(--celadon-deep) !important; }
+  .hover\:bg-emerald-600:hover, .hover\:bg-emerald-500:hover, .hover\:bg-emerald-700:hover { background-color: var(--celadon) !important; }
+  .bg-emerald-100, .bg-emerald-50, .bg-emerald-50\/50, .bg-emerald-50\/40, .bg-emerald-50\/60, .bg-emerald-50\/70 { background-color: #e8ede6 !important; }
+  .text-emerald-800, .text-emerald-700, .text-emerald-600 { color: var(--celadon-deep) !important; }
+  .text-emerald-200, .text-emerald-100, .text-emerald-400, .text-emerald-500 { color: var(--celadon) !important; }
+  .border-emerald-300, .border-emerald-200, .border-emerald-100, .border-emerald-400 { border-color: #b9c8ba !important; }
+  .fill-emerald-500 { fill: var(--celadon) !important; }
+  .ring-emerald-300 { --tw-ring-color: #b9c8ba !important; }
+  .hover\:text-emerald-700:hover, .hover\:text-emerald-600:hover { color: var(--celadon-deep) !important; }
+  .hover\:border-emerald-300:hover, .hover\:border-emerald-200:hover { border-color: var(--celadon) !important; }
+  .hover\:bg-emerald-50:hover, .hover\:bg-emerald-50\/50:hover { background-color: #e8ede6 !important; }
+
+  /* amber 點綴 -> 赭石／陶土（收斂、低飽和） */
+  .bg-amber-600, .bg-amber-700 { background-color: #a8694a !important; }
+  .hover\:bg-amber-500:hover, .hover\:bg-amber-600:hover { background-color: #b97a5b !important; }
+  .bg-amber-100, .bg-amber-50, .bg-amber-50\/50, .bg-amber-50\/60, .bg-amber-50\/70 { background-color: #f0e7d8 !important; }
+  .text-amber-800, .text-amber-700, .text-amber-600 { color: #8c5a3c !important; }
+  .text-amber-200, .text-amber-400, .text-amber-500 { color: #c89a6a !important; }
+  .border-amber-300, .border-amber-200, .border-amber-100 { border-color: #ddc9a8 !important; }
+  .fill-amber-400, .text-amber-400.fill-amber-400 { fill: #c89a6a !important; }
+
+  /* 圓角柔化收斂（宋式偏方正但不生硬） */
+  .rounded-2xl { border-radius: 0.6rem !important; }
+  .rounded-xl { border-radius: 0.5rem !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+// === 內嵌 lucide 圖示定義（不依賴外部圖示庫） ===
+const ICON_DEFS = {"Calendar": [{"tag": "rect", "attrs": {"x": "3", "y": "4", "width": "18", "height": "18", "rx": "2", "ry": "2"}}, {"tag": "line", "attrs": {"x1": "16", "y1": "2", "x2": "16", "y2": "6"}}, {"tag": "line", "attrs": {"x1": "8", "y1": "2", "x2": "8", "y2": "6"}}, {"tag": "line", "attrs": {"x1": "3", "y1": "10", "x2": "21", "y2": "10"}}], "Clock": [{"tag": "circle", "attrs": {"cx": "12", "cy": "12", "r": "10"}}, {"tag": "polyline", "attrs": {"points": "12 6 12 12 16 14"}}], "Thermometer": [{"tag": "path", "attrs": {"d": "M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"}}], "Droplet": [{"tag": "path", "attrs": {"d": "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"}}], "Star": [{"tag": "polygon", "attrs": {"points": "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"}}], "Plus": [{"tag": "line", "attrs": {"x1": "12", "y1": "5", "x2": "12", "y2": "19"}}, {"tag": "line", "attrs": {"x1": "5", "y1": "12", "x2": "19", "y2": "12"}}], "Trash2": [{"tag": "polyline", "attrs": {"points": "3 6 5 6 21 6"}}, {"tag": "path", "attrs": {"d": "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}}, {"tag": "line", "attrs": {"x1": "10", "y1": "11", "x2": "10", "y2": "17"}}, {"tag": "line", "attrs": {"x1": "14", "y1": "11", "x2": "14", "y2": "17"}}], "BookOpen": [{"tag": "path", "attrs": {"d": "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"}}, {"tag": "path", "attrs": {"d": "M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"}}], "Timer": [{"tag": "line", "attrs": {"x1": "10", "y1": "2", "x2": "14", "y2": "2"}}, {"tag": "line", "attrs": {"x1": "12", "y1": "14", "x2": "15", "y2": "11"}}, {"tag": "circle", "attrs": {"cx": "12", "cy": "14", "r": "8"}}], "X": [{"tag": "line", "attrs": {"x1": "18", "y1": "6", "x2": "6", "y2": "18"}}, {"tag": "line", "attrs": {"x1": "6", "y1": "6", "x2": "18", "y2": "18"}}], "Check": [{"tag": "polyline", "attrs": {"points": "20 6 9 17 4 12"}}], "Play": [{"tag": "polygon", "attrs": {"points": "5 3 19 12 5 21 5 3"}}], "Pause": [{"tag": "rect", "attrs": {"x": "6", "y": "4", "width": "4", "height": "16"}}, {"tag": "rect", "attrs": {"x": "14", "y": "4", "width": "4", "height": "16"}}], "RotateCcw": [{"tag": "polyline", "attrs": {"points": "1 4 1 10 7 10"}}, {"tag": "path", "attrs": {"d": "M3.51 15a9 9 0 1 0 2.13-9.36L1 10"}}], "Coffee": [{"tag": "path", "attrs": {"d": "M18 8h1a4 4 0 0 1 0 8h-1"}}, {"tag": "path", "attrs": {"d": "M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"}}, {"tag": "line", "attrs": {"x1": "6", "y1": "1", "x2": "6", "y2": "4"}}, {"tag": "line", "attrs": {"x1": "10", "y1": "1", "x2": "10", "y2": "4"}}, {"tag": "line", "attrs": {"x1": "14", "y1": "1", "x2": "14", "y2": "4"}}], "Leaf": [{"tag": "path", "attrs": {"d": "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"}}, {"tag": "path", "attrs": {"d": "M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"}}], "MapPin": [{"tag": "path", "attrs": {"d": "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"}}, {"tag": "circle", "attrs": {"cx": "12", "cy": "10", "r": "3"}}], "Store": [{"tag": "path", "attrs": {"d": "M2 7l1-3h18l1 3"}}, {"tag": "path", "attrs": {"d": "M4 7v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7"}}, {"tag": "path", "attrs": {"d": "M2 7h20"}}, {"tag": "path", "attrs": {"d": "M9 21V12h6v9"}}], "Award": [{"tag": "circle", "attrs": {"cx": "12", "cy": "8", "r": "7"}}, {"tag": "polyline", "attrs": {"points": "8.21 13.89 7 23 12 20 17 23 15.79 13.88"}}], "Beaker": [{"tag": "path", "attrs": {"d": "M4.5 3h15"}}, {"tag": "path", "attrs": {"d": "M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"}}, {"tag": "path", "attrs": {"d": "M6 14h12"}}], "Edit2": [{"tag": "path", "attrs": {"d": "M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"}}], "Sprout": [{"tag": "path", "attrs": {"d": "M7 20h10"}}, {"tag": "path", "attrs": {"d": "M10 20c5.5-2.5.8-6.4 3-10"}}, {"tag": "path", "attrs": {"d": "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"}}, {"tag": "path", "attrs": {"d": "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"}}], "Coins": [{"tag": "circle", "attrs": {"cx": "8", "cy": "8", "r": "6"}}, {"tag": "path", "attrs": {"d": "M18.09 10.37A6 6 0 1 1 10.34 18"}}, {"tag": "path", "attrs": {"d": "M7 6h1v4"}}, {"tag": "path", "attrs": {"d": "M16.71 13.88l.7.71-2.82 2.82"}}], "User": [{"tag": "path", "attrs": {"d": "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"}}, {"tag": "circle", "attrs": {"cx": "12", "cy": "7", "r": "4"}}], "Mountain": [{"tag": "path", "attrs": {"d": "M8 3l4 8 5-5 5 15H2L8 3z"}}], "Navigation": [{"tag": "polygon", "attrs": {"points": "3 11 22 2 13 21 11 13 3 11"}}], "Globe": [{"tag": "circle", "attrs": {"cx": "12", "cy": "12", "r": "10"}}, {"tag": "line", "attrs": {"x1": "2", "y1": "12", "x2": "22", "y2": "12"}}, {"tag": "path", "attrs": {"d": "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"}}], "ChevronDown": [{"tag": "polyline", "attrs": {"points": "6 9 12 15 18 9"}}], "ChevronUp": [{"tag": "polyline", "attrs": {"points": "18 15 12 9 6 15"}}], "Share2": [{"tag": "circle", "attrs": {"cx": "18", "cy": "5", "r": "3"}}, {"tag": "circle", "attrs": {"cx": "6", "cy": "12", "r": "3"}}, {"tag": "circle", "attrs": {"cx": "18", "cy": "19", "r": "3"}}, {"tag": "line", "attrs": {"x1": "8.59", "y1": "13.51", "x2": "15.42", "y2": "17.49"}}, {"tag": "line", "attrs": {"x1": "15.41", "y1": "6.51", "x2": "8.59", "y2": "10.49"}}], "CheckCircle": [{"tag": "path", "attrs": {"d": "M22 11.08V12a10 10 0 1 1-5.93-9.14"}}, {"tag": "polyline", "attrs": {"points": "22 4 12 14.01 9 11.01"}}], "Camera": [{"tag": "path", "attrs": {"d": "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"}}, {"tag": "circle", "attrs": {"cx": "12", "cy": "13", "r": "4"}}], "Info": [{"tag": "circle", "attrs": {"cx": "12", "cy": "12", "r": "10"}}, {"tag": "line", "attrs": {"x1": "12", "y1": "16", "x2": "12", "y2": "12"}}, {"tag": "line", "attrs": {"x1": "12", "y1": "8", "x2": "12.01", "y2": "8"}}], "MessageCircle": [{"tag": "path", "attrs": {"d": "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"}}], "FileText": [{"tag": "path", "attrs": {"d": "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"}}, {"tag": "polyline", "attrs": {"points": "14 2 14 8 20 8"}}, {"tag": "line", "attrs": {"x1": "16", "y1": "13", "x2": "8", "y2": "13"}}, {"tag": "line", "attrs": {"x1": "16", "y1": "17", "x2": "8", "y2": "17"}}, {"tag": "polyline", "attrs": {"points": "10 9 9 9 8 9"}}], "Kettle": [{"tag": "path", "attrs": {"d": "M15 2H9"}}, {"tag": "path", "attrs": {"d": "M5.6 8a8.5 8.5 0 0 0 12.8 0"}}, {"tag": "path", "attrs": {"d": "M3 13a9 9 0 0 0 18 0c0-3-1.5-4.5-3-5H6c-1.5.5-3 2-3 5Z"}}, {"tag": "path", "attrs": {"d": "M12 18a3 3 0 0 0 0-6"}}]};
+
+function makeIcon(name) {
+  return function IconComp({ className, ...rest }) {
+    const parts = ICON_DEFS[name] || [];
+    const kids = parts.map((p, i) =>
+      React.createElement(p.tag, { key: i, ...p.attrs })
+    );
+    return React.createElement("svg", {
+      xmlns: "http://www.w3.org/2000/svg",
+      width: 24, height: 24, viewBox: "0 0 24 24",
+      fill: "none", stroke: "currentColor",
+      strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round",
+      className: className, ...rest
+    }, kids);
+  };
+}
+const __ICONS = {};
+Object.keys(ICON_DEFS).forEach(n => { __ICONS[n] = makeIcon(n); });
+const {Calendar,Clock,Thermometer,Droplet,Star,Plus,Trash2,BookOpen,Timer,X,Check,Play,Pause,RotateCcw,Coffee,Leaf,MapPin,Store,Award,Beaker,Edit2,Sprout,Coins,User,Mountain,Navigation,Globe,ChevronDown,ChevronUp,Share2,CheckCircle,Camera,Info,MessageCircle,FileText,Kettle} = __ICONS;
+
+
+// 預設常數
+const TEA_TYPES = [
+  { id: 'white', name: '白茶', color: 'bg-stone-200 text-stone-700', temp: 85, time: 60 },
+  { id: 'green', name: '綠茶', color: 'bg-lime-200 text-lime-800', temp: 80, time: 30 },
+  { id: 'oolong', name: '烏龍茶', color: 'bg-emerald-200 text-emerald-800', temp: 95, time: 50 },
+  { id: 'black', name: '紅茶', color: 'bg-amber-200 text-amber-800', temp: 90, time: 40 },
+  { id: 'puerh', name: '普洱茶', color: 'bg-yellow-200 text-yellow-900', temp: 98, time: 20 },
+  { id: 'orange', name: '橙茶', color: 'bg-orange-200 text-orange-800', temp: 90, time: 45 },
+  { id: 'floral', name: '花茶', color: 'bg-pink-200 text-pink-800', temp: 90, time: 120 },
+  { id: 'gaba', name: 'GABA', color: 'bg-indigo-200 text-indigo-800', temp: 85, time: 50 },
+];
+const FLAVOR_CATEGORIES = {
+  '青香': ['草', '豆', '蔬菜', '香草'],
+  '花香': ['清香', '濃香'],
+  '甜香': ['糖香', '奶香', '蜜香'],
+  '果香': ['青果', '熟果', '乾果'],
+  '焙香': ['堅果雜糧', '焙烤', '煙燻']
+};
+const SEASONS = ['春茶', '夏茶', '秋茶', '冬茶', '冬片', '不知春', '無'];
+const HARVEST_METHODS = ['手工採摘', '機器採摘', '半手採', '無'];
+const LEAF_COUNTS = ['單芽', '一心一葉', '一心二葉', '一心三葉', '一心四葉', '一心五葉', '一心六葉', '對口葉', '碎茶'];
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 15 }, (_, i) => currentYear - i);
+
+// 初始資料庫
+const INITIAL_TEAS = [
+  { id: 't1', name: '特級阿里山烏龍', type: 'oolong', year: '2026', season: '春茶', origin: '嘉義阿里山', harvestMethod: '手工採摘', leafCount: '一心二葉', shop: '高山青茶業', cultivar: '青心烏龍', teaMaker: '陳阿發', price: 1200, weightUnit: '半斤', customWeight: '', hasAltitude: true, altitude: 1200 },
+  { id: 't2', name: '日月潭紅玉', type: 'black', year: '2025', season: '夏茶', origin: '南投魚池', harvestMethod: '手工採摘', leafCount: '一心一葉', shop: '魚池鄉農會', cultivar: '台茶18號', teaMaker: '', price: 600, weightUnit: '二兩', customWeight: '', hasAltitude: false, altitude: 1000 },
+  { id: 't3', name: '特級東方美人', type: 'oolong', year: '2025', season: '夏茶', origin: '新竹北埔', harvestMethod: '手工採摘', leafCount: '一心二葉', shop: '堯陽茶行', cultivar: '青心大冇', teaMaker: '', price: 2000, weightUnit: '其他', customWeight: '100g', hasAltitude: false, altitude: 1000, shopAddress: '台北市大同區重慶北路二段', shopUrl: 'https://www.yaoyangtea.com', tastingTeasCount: '3', tastingPrice: '300', shopProfessionalism: 8, shopCleanliness: 9, shopComfort: 7 }
+];
+
+const INITIAL_EVALS = [
+  {
+    id: 'e1', teaId: 't1', date: '2026-06-21', rating: 5, flavors: ['清香', '糖香'], notes: '標準品鑑杯測試，香氣上揚。',
+    dryLeafShape: '球型', treeVarietal: '小葉種', infusedAromaPros: '清晰的高山冷韻與蘭花香', infusedAromaCons: '無明顯雜味', infusedAromaRating: 5,
+    soupAroma: 9, soupSweet: 8, soupSour: 2, soupUmami: 7, soupAstringent: 3, soupBright: 9, soupBalance: 8,
+    soupAromaNote: '冷卻後依然持久', soupRating: 5,
+    infusedLeafAppearance: '葉面完整，發酵均勻', infusedLeafTouch: '柔軟有彈性', infusedLeafRating: 5
+  }
+];
+
+const INITIAL_LOGS = [
+  { id: 'l1', teaId: 't1', date: '2026-06-22', time: '10:00', temp: 95, duration: 50, waterAmount: 150, teaAmount: 6, notes: '依據品鑑結果，今天稍微增加投葉量，滋味非常飽滿。' }
+];
+
+const WARE_TYPES = ['壺', '杯', '蓋碗', '公道杯', '茶海', '其他'];
+
+const WEATHER_OPTIONS = ['☀️ 晴', '⛅ 多雲', '☁️ 陰', '🌧️ 雨', '⛈️ 雷雨', '🌫️ 霧', '❄️ 雪'];
+const MOOD_OPTIONS = ['😌 放鬆', '🎯 專注', '😊 愉悅', '😔 低落', '😴 疲憊', '🤔 沉思', '🥳 興奮'];
+
+// 單一泡的預設資料（含茶湯評分與感想）
+const makeBrew = (temp = 100) => ({
+  temp, time: 30, done: false,
+  soupAroma: 5, soupSweet: 5, soupSour: 5, soupUmami: 5, soupAstringent: 5, soupPuckering: 5, soupBright: 5, soupBalance: 5,
+  note: ''
+});
+
+const INITIAL_WARES = [
+  { id: 'w1', brand: '陶作坊', product: '焱水平壺', name: '陶作坊-焱水平壺', type: '壺', material: '陶土', capacity: '150', notes: '導熱快，適合烏龍。', image: '' }
+];
+
+const DEFAULT_WARE_FORM = { id: '', brand: '', product: '', name: '', type: '壺', material: '', capacity: '', notes: '', image: '' };
+
+// 組合茶具顯示名：品牌-商品名；相容舊資料的 name
+const wareDisplayName = (w) => {
+  if (!w) return '';
+  const parts = [w.brand, w.product].filter(Boolean);
+  if (parts.length > 0) return parts.join('-');
+  return w.name || '';
+};
+
+const DEFAULT_TEA_FORM = {
+  id: '', name: '', type: 'white', year: currentYear.toString(), season: '春茶', origin: '', harvestMethod: '手工採摘', leafCount: '一心二葉',
+  shop: '', shopAddress: '', shopUrl: '', tastingTeasCount: '', tastingPrice: '', shopProfessionalism: 5, shopCleanliness: 5, shopComfort: 5,
+  cultivar: '', teaMaker: '', price: '', weightUnit: '四兩', customWeight: '', hasAltitude: false, altitude: 1000, slopeAspect: '', waterShortage: '', harvestWeather: '', pestDamage: ''
+};
+
+const DEFAULT_EVAL_FORM = {
+  teaId: '', rating: 5, flavors: [], notes: '',
+  dryLeafShape: '', treeVarietal: '',
+  infusedAromaPros: '', infusedAromaCons: '', infusedAromaRating: 5,
+  soupAroma: 5, soupSweet: 5, soupSour: 5, soupUmami: 5, soupAstringent: 5, soupPuckering: 5, soupBright: 5, soupBalance: 5,
+  soupAromaNote: '', soupSweetNote: '', soupSourNote: '', soupUmamiNote: '', soupAstringentNote: '', soupPuckeringNote: '', soupBrightNote: '', soupBalanceNote: '',
+  soupRating: 5,
+  infusedLeafAppearance: '', infusedLeafTouch: '', infusedLeafRating: 5
+};
+
+// 支援小數點的星星組件
+const FractionalStar = ({ fillValue, sizeClass = "w-4 h-4" }) => {
+  const fillPercent = Math.max(0, Math.min(100, fillValue * 100));
+  return (
+    <div className={`relative inline-block ${sizeClass} shrink-0`}>
+      <Star className={`absolute inset-0 text-stone-200 ${sizeClass}`} />
+      <div className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
+        <Star className={`text-amber-400 fill-amber-400 ${sizeClass} max-w-none block`} />
+      </div>
+    </div>
+  );
+};
+
+const StarRatingDisplay = ({ rating, sizeClass = "w-4 h-4", className = "gap-1" }) => {
+  return (
+    <div className={`flex items-center ${className}`}>
+      {[1, 2, 3, 4, 5].map((index) => {
+        const fillValue = rating - index + 1;
+        return <FractionalStar key={index} fillValue={fillValue} sizeClass={sizeClass} />;
+      })}
+    </div>
+  );
+};
+
+// 茶行評鑑曲線滑桿圖表（滑鼠 + 觸控）
+const ShopEvalChart = ({ teaForm, setTeaForm }) => {
+  const handleMove = (e, field) => {
+    if (e.cancelable) e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    let y = clientY - rect.top;
+    let percent = 1 - (y / rect.height);
+    let val = Math.max(0, Math.min(10, Math.round(percent * 10)));
+    setTeaForm(prev => ({ ...prev, [field]: val }));
+  };
+
+  const p1 = teaForm.shopProfessionalism ?? 5;
+  const p2 = teaForm.shopCleanliness ?? 5;
+  const p3 = teaForm.shopComfort ?? 5;
+
+  const y1 = 100 - (p1 * 8);
+  const y2 = 100 - (p2 * 8);
+  const y3 = 100 - (p3 * 8);
+  const pathD = `M 50 ${y1} C 100 ${y1}, 100 ${y2}, 150 ${y2} C 200 ${y2}, 200 ${y3}, 250 ${y3}`;
+
+  return (
+    <div className="relative w-full h-[140px] bg-white rounded-xl border border-stone-200 overflow-hidden select-none touch-none mt-2">
+      <svg viewBox="0 0 300 140" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+        <line x1="0" y1="20" x2="300" y2="20" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="0" y1="60" x2="300" y2="60" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="0" y1="100" x2="300" y2="100" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="50" y1="20" x2="50" y2="100" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <line x1="150" y1="20" x2="150" y2="100" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <line x1="250" y1="20" x2="250" y2="100" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <path d={pathD} fill="none" stroke="#d97706" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="50" cy={y1} r="6" fill="#fff" stroke="#d97706" strokeWidth="3" />
+        <circle cx="150" cy={y2} r="6" fill="#fff" stroke="#d97706" strokeWidth="3" />
+        <circle cx="250" cy={y3} r="6" fill="#fff" stroke="#d97706" strokeWidth="3" />
+      </svg>
+      <div className="absolute inset-0 flex justify-around items-end pb-3">
+        <div className="flex flex-col items-center w-1/3 h-full justify-end pt-2">
+           <div className="w-16 h-[80px] bg-transparent cursor-grab active:cursor-grabbing mb-2" style={{ touchAction: 'none' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handleMove(e, 'shopProfessionalism'); }} onPointerMove={(e) => e.buttons === 1 && handleMove(e, 'shopProfessionalism')} />
+           <span className="text-[10px] text-stone-500 font-bold bg-white px-1">專業 {p1}</span>
+        </div>
+        <div className="flex flex-col items-center w-1/3 h-full justify-end pt-2">
+           <div className="w-16 h-[80px] bg-transparent cursor-grab active:cursor-grabbing mb-2" style={{ touchAction: 'none' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handleMove(e, 'shopCleanliness'); }} onPointerMove={(e) => e.buttons === 1 && handleMove(e, 'shopCleanliness')} />
+           <span className="text-[10px] text-stone-500 font-bold bg-white px-1">乾淨 {p2}</span>
+        </div>
+        <div className="flex flex-col items-center w-1/3 h-full justify-end pt-2">
+           <div className="w-16 h-[80px] bg-transparent cursor-grab active:cursor-grabbing mb-2" style={{ touchAction: 'none' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handleMove(e, 'shopComfort'); }} onPointerMove={(e) => e.buttons === 1 && handleMove(e, 'shopComfort')} />
+           <span className="text-[10px] text-stone-500 font-bold bg-white px-1">舒適 {p3}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ReadOnlyShopEvalChart = ({ p1 = 5, p2 = 5, p3 = 5 }) => {
+  const y1 = 80 - (p1 * 6);
+  const y2 = 80 - (p2 * 6);
+  const y3 = 80 - (p3 * 6);
+  const pathD = `M 50 ${y1} C 100 ${y1}, 100 ${y2}, 150 ${y2} C 200 ${y2}, 200 ${y3}, 250 ${y3}`;
+
+  return (
+    <div className="relative w-full h-[100px] bg-white rounded-xl border border-stone-200 overflow-hidden select-none mt-1">
+      <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+        <line x1="0" y1="20" x2="300" y2="20" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="0" y1="50" x2="300" y2="50" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="0" y1="80" x2="300" y2="80" stroke="#f5f5f4" strokeWidth="1" />
+        <line x1="50" y1="20" x2="50" y2="80" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <line x1="150" y1="20" x2="150" y2="80" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <line x1="250" y1="20" x2="250" y2="80" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />
+        <path d={pathD} fill="none" stroke="#d97706" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="50" cy={y1} r="5" fill="#fff" stroke="#d97706" strokeWidth="2.5" />
+        <circle cx="150" cy={y2} r="5" fill="#fff" stroke="#d97706" strokeWidth="2.5" />
+        <circle cx="250" cy={y3} r="5" fill="#fff" stroke="#d97706" strokeWidth="2.5" />
+      </svg>
+      <div className="absolute inset-0 flex justify-around items-end pb-1.5">
+        <div className="flex flex-col items-center w-1/3"><span className="text-[10px] text-stone-500 font-bold bg-white/80 px-1 rounded">專業 {p1}</span></div>
+        <div className="flex flex-col items-center w-1/3"><span className="text-[10px] text-stone-500 font-bold bg-white/80 px-1 rounded">乾淨 {p2}</span></div>
+        <div className="flex flex-col items-center w-1/3"><span className="text-[10px] text-stone-500 font-bold bg-white/80 px-1 rounded">舒適 {p3}</span></div>
+      </div>
+    </div>
+  );
+};
+
+// 茶湯分數評鑑圖表
+const TeaSoupEvalChart = ({ evalData, setEvalData, isBlackTea, hideNotes = false }) => {
+  const [activeNote, setActiveNote] = useState(null);
+
+  const columns = [
+    { key: 'soupAroma', label: '香氣', noteKey: 'soupAromaNote' },
+    { key: 'soupSweet', label: '甜味', noteKey: 'soupSweetNote' },
+    { key: 'soupSour', label: '酸味', noteKey: 'soupSourNote' },
+    { key: 'soupUmami', label: '鮮味', noteKey: 'soupUmamiNote' },
+    { key: 'soupAstringent', label: '澀感', noteKey: 'soupAstringentNote' },
+    ...(isBlackTea ? [{ key: 'soupPuckering', label: '收斂性', noteKey: 'soupPuckeringNote' }] : []),
+    { key: 'soupBright', label: '明亮度', noteKey: 'soupBrightNote' },
+    { key: 'soupBalance', label: '平衡', noteKey: 'soupBalanceNote' },
+  ];
+
+  const count = columns.length;
+  const viewBoxWidth = 350;
+  const spacing = viewBoxWidth / count;
+
+  const pts = columns.map((col, i) => {
+    const val = evalData[col.key] ?? 5;
+    return { x: spacing * i + (spacing / 2), y: 120 - (val * 10), val, ...col };
+  });
+
+  let pathD = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], curr = pts[i];
+    const midX = (prev.x + curr.x) / 2;
+    pathD += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
+  }
+
+  const handleMove = (e, field) => {
+    if (e.cancelable) e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    let y = clientY - rect.top;
+    let percent = 1 - (y / rect.height);
+    let val = Math.max(0, Math.min(10, Math.round(percent * 10)));
+    setEvalData(prev => ({ ...prev, [field]: val }));
+  };
+
+  return (
+    <div className="mt-3">
+      <div className="relative w-full h-[180px] bg-white rounded-xl border border-stone-200 overflow-hidden select-none touch-none">
+        <svg viewBox={`0 0 ${viewBoxWidth} 180`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+          <line x1="0" y1="20" x2={viewBoxWidth} y2="20" stroke="#f5f5f4" strokeWidth="1" />
+          <line x1="0" y1="70" x2={viewBoxWidth} y2="70" stroke="#f5f5f4" strokeWidth="1" />
+          <line x1="0" y1="120" x2={viewBoxWidth} y2="120" stroke="#f5f5f4" strokeWidth="1" />
+          {pts.map(p => <line key={p.key} x1={p.x} y1="20" x2={p.x} y2="120" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />)}
+          <path d={pathD} fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" />
+          {pts.map(p => <circle key={p.key} cx={p.x} cy={p.y} r="5.5" fill="#fff" stroke="#059669" strokeWidth="2.5" />)}
+        </svg>
+        <div className="absolute inset-0 flex items-end pb-1.5">
+          {pts.map(p => (
+            <div key={p.key} className="flex flex-col items-center h-full justify-end relative" style={{ width: `${100/count}%` }}>
+               <div className="w-full h-[100px] bg-transparent cursor-grab active:cursor-grabbing mb-1" style={{ touchAction: 'none' }} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handleMove(e, p.key); }} onPointerMove={(e) => e.buttons === 1 && handleMove(e, p.key)} />
+               <span className="text-[9px] text-stone-500 font-bold bg-white/80 px-0.5 rounded leading-tight mb-0.5 whitespace-nowrap">{p.label}</span>
+               <span className="text-[11px] text-emerald-700 font-bold leading-tight mb-1">{p.val}</span>
+               {!hideNotes && (
+               <button
+                 type="button"
+                 onClick={(e) => { e.stopPropagation(); setActiveNote(activeNote === p.key ? null : p.key); }}
+                 className={`p-1.5 rounded-full flex items-center justify-center transition-colors shadow-sm ${evalData[p.noteKey] ? 'bg-emerald-100 text-emerald-600' : 'bg-stone-50 text-stone-400 hover:text-emerald-700 hover:bg-emerald-50'}`}
+               >
+                 <MessageCircle className="w-3.5 h-3.5" />
+               </button>
+               )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {!hideNotes && activeNote && (
+        <div className="mt-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2">
+          <label className="text-[11px] font-bold text-emerald-800 flex items-center justify-between mb-2">
+            <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />補充描述：{columns.find(c => c.key === activeNote).label}</span>
+            <button type="button" onClick={() => setActiveNote(null)} className="text-emerald-600 hover:bg-emerald-100 p-1 rounded"><X className="w-3 h-3"/></button>
+          </label>
+          <textarea
+            rows="2"
+            placeholder={`輸入關於「${columns.find(c => c.key === activeNote).label}」的描述或感受...`}
+            value={evalData[columns.find(c => c.key === activeNote).noteKey] || ''}
+            onChange={e => setEvalData({...evalData, [columns.find(c => c.key === activeNote).noteKey]: e.target.value})}
+            className="w-full border border-emerald-200 rounded-lg p-2 text-xs bg-white text-stone-700 placeholder:text-stone-300"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// 茶湯分數評鑑圖表 (唯讀版)
+const ReadOnlyTeaSoupEvalChart = ({ evalData, isBlackTea, title = '茶湯分數表現', hideRating = false }) => {
+  const columns = [
+    { key: 'soupAroma', label: '香氣', noteKey: 'soupAromaNote' },
+    { key: 'soupSweet', label: '甜味', noteKey: 'soupSweetNote' },
+    { key: 'soupSour', label: '酸味', noteKey: 'soupSourNote' },
+    { key: 'soupUmami', label: '鮮味', noteKey: 'soupUmamiNote' },
+    { key: 'soupAstringent', label: '澀感', noteKey: 'soupAstringentNote' },
+    ...(isBlackTea ? [{ key: 'soupPuckering', label: '收斂性', noteKey: 'soupPuckeringNote' }] : []),
+    { key: 'soupBright', label: '明亮度', noteKey: 'soupBrightNote' },
+    { key: 'soupBalance', label: '平衡', noteKey: 'soupBalanceNote' },
+  ];
+
+  const count = columns.length;
+  const viewBoxWidth = 350;
+  const spacing = viewBoxWidth / count;
+
+  const pts = columns.map((col, i) => {
+    const val = evalData[col.key] ?? 5;
+    return { x: spacing * i + (spacing / 2), y: 80 - (val * 6), val, ...col };
+  });
+
+  let pathD = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const midX = (pts[i - 1].x + pts[i].x) / 2;
+    pathD += ` C ${midX} ${pts[i - 1].y}, ${midX} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+  }
+
+  const notes = columns.filter(c => evalData[c.noteKey]).map(c => ({ label: c.label, text: evalData[c.noteKey] }));
+
+  return (
+    <div className="mt-3 bg-stone-50 p-2.5 rounded-lg border border-stone-100">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-[11px] font-bold text-stone-700 flex items-center gap-1"><Droplet className="w-3.5 h-3.5 text-emerald-600" />{title}</h4>
+        {!hideRating && (
+        <div className="flex gap-0.5">
+          {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < (evalData.soupRating || 5) ? 'fill-emerald-500 text-emerald-500' : 'text-stone-300'}`} />)}
+        </div>
+        )}
+      </div>
+      <div className="relative w-full h-[100px] bg-white rounded-xl border border-stone-200 overflow-hidden select-none">
+        <svg viewBox={`0 0 ${viewBoxWidth} 100`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+          <line x1="0" y1="20" x2={viewBoxWidth} y2="20" stroke="#f5f5f4" strokeWidth="1" />
+          <line x1="0" y1="50" x2={viewBoxWidth} y2="50" stroke="#f5f5f4" strokeWidth="1" />
+          <line x1="0" y1="80" x2={viewBoxWidth} y2="80" stroke="#f5f5f4" strokeWidth="1" />
+          {pts.map(p => <line key={p.key} x1={p.x} y1="20" x2={p.x} y2="80" stroke="#e7e5e4" strokeWidth="4" strokeLinecap="round" />)}
+          <path d={pathD} fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" />
+          {pts.map(p => <circle key={p.key} cx={p.x} cy={p.y} r="4" fill="#fff" stroke="#059669" strokeWidth="2" />)}
+        </svg>
+        <div className="absolute inset-0 flex justify-around items-end pb-1.5">
+          {pts.map(p => (
+            <div key={p.key} className="flex flex-col items-center" style={{ width: `${100/count}%` }}>
+              <span className="text-[8px] text-stone-500 font-bold bg-white/80 px-0.5 rounded whitespace-nowrap">{p.label}</span>
+              <span className="text-[10px] text-emerald-700 font-bold mt-0.5">{p.val}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {notes.length > 0 && (
+        <div className="mt-2 space-y-1.5">
+          {notes.map(n => (
+            <div key={n.label} className="text-[10px] bg-white border border-stone-100 p-1.5 rounded text-stone-600">
+              <span className="font-bold text-stone-700 mr-1">[{n.label}]</span>{n.text}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// === 資料持久化 (localStorage) ===
+const STORAGE_KEY = 'teaApp.v1';
+
+const loadState = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+};
+
+function App() {
+  const __saved = loadState();
+  const [activeTab, setActiveTab] = useState('teas');
+
+  const [teas, setTeas] = useState(__saved?.teas ?? INITIAL_TEAS);
+  const [evals, setEvals] = useState(__saved?.evals ?? INITIAL_EVALS);
+  const [logs, setLogs] = useState(__saved?.logs ?? INITIAL_LOGS);
+  const [wares, setWares] = useState(__saved?.wares ?? INITIAL_WARES);
+  const [storageFull, setStorageFull] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [expandedTeas, setExpandedTeas] = useState({});
+  const [expandedBrews, setExpandedBrews] = useState({});
+
+  // 資料變動時自動存回 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ teas, evals, logs, wares }));
+      setStorageFull(false);
+    } catch (e) {
+      // 多半是容量超過上限（照片太多）
+      setStorageFull(true);
+    }
+  }, [teas, evals, logs, wares]);
+
+  const [showAddTea, setShowAddTea] = useState(false);
+  const [isEditingTea, setIsEditingTea] = useState(false);
+  const [showAdvancedShop, setShowAdvancedShop] = useState(false);
+  const [showAdvancedOrigin, setShowAdvancedOrigin] = useState(false);
+  const [showAddEval, setShowAddEval] = useState(false);
+  const [showAromaInfo, setShowAromaInfo] = useState(false);
+  const [activeFlavorCategories, setActiveFlavorCategories] = useState([]);
+  const [showAddLog, setShowAddLog] = useState(false);
+  const [logStep, setLogStep] = useState(1);
+  const [brewPanels, setBrewPanels] = useState({});
+  const [editingLogId, setEditingLogId] = useState(null);
+  const [shareCard, setShareCard] = useState(null);
+  const [filters, setFilters] = useState({ teas: {}, evals: {}, logs: {} });
+  const [filterOpen, setFilterOpen] = useState({});
+  const [cardFlipped, setCardFlipped] = useState(false);
+  const [showAddWare, setShowAddWare] = useState(false);
+  const [isEditingWare, setIsEditingWare] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const [teaForm, setTeaForm] = useState(DEFAULT_TEA_FORM);
+  const [wareForm, setWareForm] = useState(DEFAULT_WARE_FORM);
+  const [newEval, setNewEval] = useState(DEFAULT_EVAL_FORM);
+  const [newLog, setNewLog] = useState({ teaId: '', brewMode: 'single', ratio: 50, brewTemp: 100, dryShape: '條形', brewTime: 300, wareIds: [], temp: 95, duration: 45, waterAmount: 150, teaAmount: 5, notes: '', logDate: '', logTime: '', weather: '', place: '', mood: '', company: '', soupPhoto: '', soupAroma: 5, soupSweet: 5, soupSour: 5, soupUmami: 5, soupAstringent: 5, soupPuckering: 5, soupBright: 5, soupBalance: 5, brews: [makeBrew(100)] });
+
+  const handleSubmitTea = (e) => {
+    e.preventDefault();
+    if (isEditingTea) {
+      setTeas(teas.map(t => t.id === teaForm.id ? { ...teaForm } : t));
+    } else {
+      setTeas([{ ...teaForm, id: `t-${Date.now()}` }, ...teas]);
+    }
+    setShowAddTea(false);
+    setTeaForm(DEFAULT_TEA_FORM);
+    setIsEditingTea(false);
+  };
+
+  const handleEditTea = (tea) => {
+    setTeaForm({ ...tea });
+    setIsEditingTea(true);
+    setShowAdvancedShop(!!(tea.shopAddress || tea.shopUrl || tea.tastingPrice || tea.shopProfessionalism));
+    setShowAdvancedOrigin(!!(tea.slopeAspect || tea.waterShortage || tea.harvestWeather || tea.pestDamage));
+    setShowAddTea(true);
+  };
+
+  const handleAddNewTea = () => {
+    setTeaForm(DEFAULT_TEA_FORM);
+    setIsEditingTea(false);
+    setShowAdvancedShop(false);
+    setShowAdvancedOrigin(false);
+    setShowAddTea(true);
+  };
+
+  const handleSubmitEval = (e) => {
+    e.preventDefault();
+    if(!newEval.teaId) return;
+    const now = new Date();
+    const filteredEvals = evals.filter(ev => ev.teaId !== newEval.teaId);
+    const finalRating = Number(((newEval.infusedAromaRating + newEval.soupRating + newEval.infusedLeafRating) / 3).toFixed(1));
+    setEvals([{ id: `e-${Date.now()}`, date: now.toISOString().split('T')[0], ...newEval, rating: finalRating }, ...filteredEvals]);
+    setShowAddEval(false);
+  };
+
+  const handleSubmitLog = (e) => {
+    e.preventDefault();
+    if(!newLog.teaId) return;
+    const now = new Date();
+    if (editingLogId) {
+      setLogs(logs.map(l => l.id === editingLogId ? {
+        ...l, ...newLog,
+        date: newLog.logDate || l.date,
+        time: newLog.logTime || l.time
+      } : l));
+    } else {
+      setLogs([{
+        id: `l-${Date.now()}`,
+        ...newLog,
+        date: newLog.logDate || now.toISOString().split('T')[0],
+        time: newLog.logTime || now.toTimeString().substring(0, 5)
+      }, ...logs]);
+    }
+    setShowAddLog(false);
+    setLogStep(1);
+    setEditingLogId(null);
+  };
+
+  const handleEditLog = (log, step) => {
+    setNewLog({
+      teaId: log.teaId,
+      brewMode: log.brewMode || 'single',
+      ratio: log.ratio ?? 50,
+      brewTemp: log.brewTemp ?? 100,
+      dryShape: log.dryShape || '條形',
+      brewTime: log.brewTime ?? 300,
+      wareIds: log.wareIds || (log.wareId ? [log.wareId] : []),
+      temp: log.temp ?? 95,
+      duration: log.duration ?? 45,
+      waterAmount: log.waterAmount ?? 150,
+      teaAmount: log.teaAmount ?? 5,
+      notes: log.notes || '',
+      logDate: log.date || '',
+      logTime: log.time || '',
+      weather: log.weather || '',
+      place: log.place || '',
+      mood: log.mood || '',
+      company: log.company || '',
+      soupPhoto: log.soupPhoto || '',
+      soupAroma: log.soupAroma ?? 5, soupSweet: log.soupSweet ?? 5, soupSour: log.soupSour ?? 5,
+      soupUmami: log.soupUmami ?? 5, soupAstringent: log.soupAstringent ?? 5, soupPuckering: log.soupPuckering ?? 5,
+      soupBright: log.soupBright ?? 5, soupBalance: log.soupBalance ?? 5,
+      brews: (log.brews && log.brews.length) ? log.brews.map(b => ({ ...makeBrew(b.temp), ...b })) : [makeBrew(100)]
+    });
+    setEditingLogId(log.id);
+    setBrewPanels({});
+    setLogStep(step || 1);
+    setShowAddLog(true);
+  };
+
+  const requestDelete = (type, id) => setDeleteTarget({ type, id });
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const { type, id } = deleteTarget;
+    if(type === 'tea') setTeas(teas.filter(t => t.id !== id));
+    if(type === 'eval') setEvals(evals.filter(e => e.id !== id));
+    if(type === 'log') setLogs(logs.filter(l => l.id !== id));
+    if(type === 'ware') setWares(wares.filter(w => w.id !== id));
+    setDeleteTarget(null);
+  };
+
+  const confirmReset = () => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    setTeas(INITIAL_TEAS);
+    setEvals(INITIAL_EVALS);
+    setLogs(INITIAL_LOGS);
+    setWares(INITIAL_WARES);
+    setShowResetConfirm(false);
+    setStorageFull(false);
+  };
+
+  const getTeaContextForLog = (teaId) => {
+    const tea = teas.find(t => t.id === teaId);
+    const evaluation = evals.find(e => e.teaId === teaId);
+    const typeDefault = tea ? TEA_TYPES.find(t => t.id === tea.type) : null;
+    return { tea, evaluation, typeDefault };
+  };
+
+  const unevaluatedTeas = teas.filter(t => !evals.some(e => e.teaId === t.id));
+  const getDisplayName = (tea) => tea.shop ? `${tea.shop} - ${tea.name}` : tea.name;
+  const toggleExpandTea = (id) => setExpandedTeas(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // === 篩選機制 ===
+  const getTeaRating = (teaId) => {
+    const ev = evals.find(e => e.teaId === teaId);
+    return ev ? ev.rating : null;
+  };
+
+  // 收集可用篩選選項（從現有茶葉資料動態產生）
+  const filterOptions = {
+    type: Array.from(new Set(teas.map(t => t.type))).map(id => ({ id, name: TEA_TYPES.find(x => x.id === id)?.name || id })),
+    shop: Array.from(new Set(teas.map(t => t.shop).filter(Boolean))),
+    season: Array.from(new Set(teas.map(t => t.season).filter(Boolean))),
+    cultivar: Array.from(new Set(teas.map(t => t.cultivar).filter(Boolean))),
+    rating: [5, 4, 3, 2, 1],
+  };
+
+  const toggleFilter = (tab, dim, val) => {
+    setFilters(prev => {
+      const cur = prev[tab]?.[dim] || [];
+      const next = cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val];
+      return { ...prev, [tab]: { ...prev[tab], [dim]: next } };
+    });
+  };
+
+  const clearFilters = (tab) => setFilters(prev => ({ ...prev, [tab]: {} }));
+
+  const activeFilterCount = (tab) => {
+    const f = filters[tab] || {};
+    return Object.values(f).reduce((s, arr) => s + (arr?.length || 0), 0);
+  };
+
+  // 判斷某茶是否通過篩選（rating 傳入該情境的分數）
+  const teaPassesFilter = (tab, tea, rating) => {
+    const f = filters[tab] || {};
+    if (f.type?.length && !f.type.includes(tea.type)) return false;
+    if (f.shop?.length && !f.shop.includes(tea.shop)) return false;
+    if (f.season?.length && !f.season.includes(tea.season)) return false;
+    if (f.cultivar?.length && !f.cultivar.includes(tea.cultivar)) return false;
+    if (f.rating?.length) {
+      // 「N 星以上」：取選中的最低門檻
+      const threshold = Math.min(...f.rating);
+      if (rating == null || rating < threshold) return false;
+    }
+    return true;
+  };
+
+
+  const getTastingHint = (shape) => {
+    switch(shape) {
+      case '條形': return '茶樣3g - 品鑑組茶具 - 開水 - 5min';
+      case '球型': return '茶樣3g - 品鑑組茶具 - 開水 - 6min';
+      case '東方美人': return '茶樣3g - 品鑑組茶具 - 5.5min';
+      case '散茶': return '茶樣3g - 品鑑組茶具 - 開水 - 5min';
+      case '茶磚':
+      case '茶餅': return '茶樣3g - 品鑑組茶具 - 開水 - 5min';
+      default: return '請先選擇茶乾辨識以獲取標準沖泡提示';
+    }
+  };
+
+  const getBrewTimeSec = (shape) => {
+    switch(shape) {
+      case '條形': return 300;
+      case '球型': return 360;
+      default: return 330;
+    }
+  };
+
+  // 投茶量自動計算：僅當「正好選一個壺或蓋碗」且該茶具有容量時，容量 ÷ 茶水比水值
+  const calcTeaAmount = (wareIds, ratio) => {
+    if (!Array.isArray(wareIds) || wareIds.length !== 1) return null;
+    const w = wares.find(x => x.id === wareIds[0]);
+    if (!w) return null;
+    if (w.type !== '壺' && w.type !== '蓋碗') return null;
+    const cap = parseFloat(w.capacity);
+    if (!cap || !ratio) return null;
+    return Math.round((cap / ratio) * 10) / 10;
+  };
+
+  // 注水量自動帶入：僅當「正好選一個壺或蓋碗」且該茶具有容量時，取其容量
+  const calcWaterAmount = (wareIds) => {
+    if (!Array.isArray(wareIds) || wareIds.length !== 1) return null;
+    const w = wares.find(x => x.id === wareIds[0]);
+    if (!w) return null;
+    if (w.type !== '壺' && w.type !== '蓋碗') return null;
+    const cap = parseFloat(w.capacity);
+    if (!cap) return null;
+    return cap;
+  };
+
+  const fmtMMSS = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  const handleWareImage = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setWareForm(prev => ({ ...prev, image: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleSoupPhoto = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setNewLog(prev => ({ ...prev, soupPhoto: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddNewWare = () => {
+    setWareForm(DEFAULT_WARE_FORM);
+    setIsEditingWare(false);
+    setShowAddWare(true);
+  };
+
+  const handleEditWare = (ware) => {
+    setWareForm({ ...ware });
+    setIsEditingWare(true);
+    setShowAddWare(true);
+  };
+
+  const handleSubmitWare = (e) => {
+    e.preventDefault();
+    const payload = { ...wareForm, name: wareDisplayName(wareForm) };
+    if (isEditingWare) {
+      setWares(wares.map(w => w.id === payload.id ? { ...payload } : w));
+    } else {
+      setWares([{ ...payload, id: `w-${Date.now()}` }, ...wares]);
+    }
+    setShowAddWare(false);
+    setWareForm(DEFAULT_WARE_FORM);
+    setIsEditingWare(false);
+  };
+
+  const handleShare = (tea) => {
+    setShareCard(tea);
+    setCardFlipped(false);
+  };
+
+  const handleDownloadCard = async () => {
+    const node = document.getElementById('share-card-capture');
+    if (!node || !window.html2canvas) return;
+    try {
+      const canvas = await window.html2canvas(node, { scale: 2, backgroundColor: null, useCORS: true });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      const name = shareCard ? (shareCard.shop ? `${shareCard.shop}-${shareCard.name}` : shareCard.name) : '茶卡';
+      a.href = url;
+      a.download = `${name}-${cardFlipped ? '茶行' : '茶葉'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error('下載失敗', e);
+    }
+  };
+
+  const renderFilterBar = (tab) => {
+    const f = filters[tab] || {};
+    const count = activeFilterCount(tab);
+    const open = !!filterOpen[tab];
+    const groups = [
+      { dim: 'type', label: '製程', opts: filterOptions.type.map(o => ({ val: o.id, text: o.name })) },
+      { dim: 'shop', label: '茶行', opts: filterOptions.shop.map(s => ({ val: s, text: s })) },
+      { dim: 'season', label: '季節', opts: filterOptions.season.map(s => ({ val: s, text: s })) },
+      { dim: 'cultivar', label: '品種', opts: filterOptions.cultivar.map(s => ({ val: s, text: s })) },
+      { dim: 'rating', label: '評分', opts: filterOptions.rating.map(n => ({ val: n, text: `${n}★以上` })) },
+    ];
+    return (
+      <div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFilterOpen(prev => ({ ...prev, [tab]: !prev[tab] }))}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-colors ${open || count > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-stone-500 border-stone-200 hover:border-emerald-300'}`}
+          >
+            <FileText className="w-3.5 h-3.5" /> 篩選
+            {count > 0 && <span className="bg-emerald-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">{count}</span>}
+            {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          {count > 0 && !open && <button onClick={() => clearFilters(tab)} className="text-[11px] text-stone-400 hover:text-red-500">清除</button>}
+        </div>
+        {open && (
+          <div className="bg-white border border-stone-200 rounded-xl p-3 space-y-2.5 mt-2 animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-stone-500">快速篩選{count > 0 ? `（${count}）` : ''}</span>
+              {count > 0 && <button onClick={() => clearFilters(tab)} className="text-[11px] text-stone-400 hover:text-red-500">清除全部</button>}
+            </div>
+            {groups.map(g => g.opts.length > 0 && (
+              <div key={g.dim} className="flex items-start gap-2">
+                <span className="text-[10px] font-bold text-stone-400 w-8 shrink-0 mt-1.5">{g.label}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.opts.map(o => {
+                    const on = (f[g.dim] || []).includes(o.val);
+                    return (
+                      <button key={String(o.val)} onClick={() => toggleFilter(tab, g.dim, o.val)} className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${on ? 'bg-emerald-600 text-white border-emerald-600 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-300'}`}>{o.text}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const NAV = [
+    { id: 'teas', label: '茶葉資訊', icon: Sprout },
+    { id: 'evals', label: '品鑑結果', icon: Award },
+    { id: 'logs', label: '品茗時光', icon: Coffee },
+    { id: 'wares', label: '茶具', icon: Beaker },
+  ];
+
+  return (
+    <div className="min-h-screen text-stone-800" style={{ background: 'var(--paper)' }}>
+
+      {/* Header + 頂部水平導覽 (網頁版) */}
+      <header className="shadow-md sticky top-0 z-30" style={{ background: 'var(--celadon-deep)', color: 'var(--paper)' }}>
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Coffee className="w-6 h-6" style={{ color: 'var(--paper)', opacity: 0.85 }} />
+            <h1 className="text-2xl tracking-[0.3em] font-shoujin" style={{ fontWeight: 600 }}>三韻半盞</h1>
+          </div>
+          <nav className="flex items-center gap-1">
+            {NAV.map(item => {
+              const Icon = item.icon;
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className="relative flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm transition-colors"
+                  style={active
+                    ? { background: 'var(--paper)', color: 'var(--celadon-deep)', fontWeight: 700 }
+                    : { color: 'rgba(244,239,228,0.78)' }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline tracking-widest">{item.label}</span>
+                  {item.id === 'evals' && unevaluatedTeas.length > 0 && (
+                    <span className="absolute top-1 right-2 w-2 h-2 rounded-full animate-pulse" style={{ background: '#9c4a3c' }} />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {storageFull && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl p-3 flex items-start gap-2">
+            <Info className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>儲存空間已滿，最新的變更可能未被保存。照片會佔用較多空間，建議刪除部分含照片的紀錄或茶具後再試。</span>
+          </div>
+        )}
+
+        {/* --- TAB 1: 茶葉資訊 --- */}
+        {activeTab === 'teas' && (
+          <div className="space-y-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2"><Sprout className="w-6 h-6" style={{ color: 'var(--celadon)' }} /> 茶葉資訊</h2>
+              <button onClick={handleAddNewTea} className="text-white py-2 px-4 rounded-full flex items-center gap-1 text-sm shadow transition-colors" style={{ background: 'var(--celadon-deep)' }}>
+                <Plus className="w-4 h-4" /> 新增茶葉
+              </button>
+            </div>
+            {renderFilterBar('teas')}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+              {teas.filter(tea => teaPassesFilter('teas', tea, getTeaRating(tea.id))).map(tea => {
+                const typeInfo = TEA_TYPES.find(t => t.id === tea.type);
+                const teaEval = evals.find(e => e.teaId === tea.id);
+                const isExpanded = !!expandedTeas[tea.id];
+
+                return (
+                  <div key={tea.id} className="bg-white rounded-xl p-4 shadow-sm border border-stone-200 relative group transition-colors hover:border-emerald-300">
+
+                    <div className="absolute top-3 right-3 flex gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-1">
+                      <button onClick={() => handleEditTea(tea)} className="text-stone-300 hover:text-emerald-600 p-1"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => requestDelete('tea', tea.id)} className="text-stone-300 hover:text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+
+                    <div className="pr-16">
+                      <div className="flex items-center flex-wrap gap-2 mt-1">
+                        <h3 className="font-bold text-base leading-snug text-stone-800">{getDisplayName(tea)}</h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${typeInfo?.color || 'bg-stone-500 text-white'}`}>
+                          {typeInfo?.name || '未知茶類'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-2 text-xs text-stone-500 bg-stone-50 p-3 rounded-lg border border-stone-100">
+                      <div className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tea.year} {tea.season}</span></div>
+                      <div className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tea.origin || '未記錄'}</span></div>
+                      <div className="flex items-center gap-1"><Sprout className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tea.harvestMethod} · {tea.leafCount}</span></div>
+                      {tea.cultivar && <div className="flex items-center gap-1"><Leaf className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tea.cultivar}</span></div>}
+                      {tea.hasAltitude && <div className="flex items-center gap-1"><Mountain className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tea.altitude}m</span></div>}
+                    </div>
+
+                    <button onClick={() => toggleExpandTea(tea.id)} className="w-full mt-2 py-1.5 flex items-center justify-center gap-1 text-[10px] font-bold text-stone-400 hover:text-emerald-700 bg-stone-50 rounded-lg transition-colors">
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      {isExpanded ? '隱藏詳細資訊' : '顯示更多資訊'}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="mt-2 pt-2 border-t border-stone-100 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        {(tea.slopeAspect || tea.waterShortage || tea.harvestWeather || tea.pestDamage || tea.teaMaker) && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {tea.slopeAspect && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">面向: {tea.slopeAspect}</span>}
+                            {tea.waterShortage && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">{tea.waterShortage}</span>}
+                            {tea.harvestWeather && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">天氣: {tea.harvestWeather}</span>}
+                            {tea.pestDamage && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">蟲害: {tea.pestDamage}</span>}
+                            {tea.teaMaker && <span className="text-[10px] bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded border border-stone-200 flex items-center gap-0.5"><User className="w-3 h-3"/> 製茶師: {tea.teaMaker}</span>}
+                          </div>
+                        )}
+
+                        {tea.price && (
+                          <div className="flex items-center gap-1 text-amber-700 bg-amber-50/50 px-2 py-1.5 rounded-lg border border-amber-100/50">
+                            <Coins className="w-3.5 h-3.5 shrink-0" />
+                            <span className="text-xs font-bold">售價: {`$${tea.price} / ${tea.weightUnit === '其他' ? tea.customWeight || '未填克數' : tea.weightUnit}`}</span>
+                          </div>
+                        )}
+
+                        {(tea.shopAddress || tea.shopUrl || tea.tastingPrice || tea.shopProfessionalism !== undefined) && (
+                          <div className="bg-stone-50 p-2.5 rounded-lg border border-stone-100 space-y-2">
+                            <h4 className="text-[11px] font-bold text-stone-700 flex items-center gap-1"><Store className="w-3.5 h-3.5" />茶行詳細資訊</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {tea.shopAddress && (
+                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tea.shopAddress)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-700 w-fit bg-blue-50 px-2 py-1 rounded-md transition-colors">
+                                  <Navigation className="w-3 h-3 shrink-0" /><span className="text-[10px] underline decoration-blue-200 underline-offset-2 truncate">地址: {tea.shopAddress}</span>
+                                </a>
+                              )}
+                              {tea.shopUrl && (
+                                <a href={tea.shopUrl.startsWith('http') ? tea.shopUrl : `https://${tea.shopUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 w-fit bg-emerald-50 px-2 py-1 rounded-md transition-colors">
+                                  <Globe className="w-3 h-3 shrink-0" /><span className="text-[10px] underline decoration-emerald-200 underline-offset-2 truncate">官方網站</span>
+                                </a>
+                              )}
+                            </div>
+                            {(tea.tastingTeasCount || tea.tastingPrice) && (
+                              <div className="text-[10px] text-stone-600">
+                                 • 試茶方案: {tea.tastingTeasCount ? `${tea.tastingTeasCount}款` : ''} {tea.tastingPrice ? `$${tea.tastingPrice}` : ''}
+                              </div>
+                            )}
+                            {tea.shopProfessionalism !== undefined && (
+                               <div className="pt-1">
+                                 <ReadOnlyShopEvalChart p1={tea.shopProfessionalism} p2={tea.shopCleanliness} p3={tea.shopComfort} />
+                               </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex justify-center pt-3 pb-2">
+                           <button onClick={() => handleShare(tea)} title="分享完整資訊" className="p-3 rounded-full bg-stone-100 text-stone-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors shadow-sm active:scale-95">
+                             <Share2 className="w-5 h-5" />
+                           </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 pt-3 border-t border-stone-100 flex justify-end items-center">
+                      {teaEval ? (
+                        (() => {
+                          let medalColor = "fill-orange-600 text-orange-700";
+                          let IconComp = Award;
+                          if (teaEval.rating === 5) medalColor = "fill-yellow-400 text-yellow-600";
+                          else if (teaEval.rating === 4) medalColor = "fill-slate-300 text-slate-500";
+                          else if (teaEval.rating <= 2) { medalColor = "text-stone-500"; IconComp = Trash2; }
+
+                          return (
+                            <button onClick={() => setActiveTab('evals')} className="px-3 py-1.5 rounded-full bg-stone-50 border border-stone-200 font-medium text-[10px] flex items-center gap-1.5 hover:bg-stone-100 active:scale-95 transition-colors text-stone-500">
+                              <IconComp className={`w-4 h-4 ${medalColor}`} />
+                              <span className="text-stone-300">|</span><span>已完成品鑑</span>
+                            </button>
+                          );
+                        })()
+                      ) : (
+                        <button onClick={() => { setNewEval({ ...DEFAULT_EVAL_FORM, teaId: tea.id }); setShowAddEval(true); }} className="px-3 py-1.5 rounded-full bg-stone-50 text-stone-500 border border-stone-200 font-medium text-[10px] flex items-center gap-1 hover:bg-stone-100 hover:text-emerald-700 hover:border-emerald-200 active:scale-95 transition-colors">
+                          <Beaker className="w-3 h-3" /> 尚未品鑑，點此開始測評
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 2: 品鑑結果 --- */}
+        {activeTab === 'evals' && (
+          <div className="space-y-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2"><Award className="w-6 h-6" style={{ color: 'var(--celadon)' }} /> 品鑑結果</h2>
+              <button onClick={() => {
+                if(teas.length > 0) {
+                  setNewEval({ ...DEFAULT_EVAL_FORM, teaId: unevaluatedTeas.length > 0 ? unevaluatedTeas[0].id : teas[0].id });
+                  setShowAddEval(true);
+                }
+              }} className="text-white py-2 px-4 rounded-full flex items-center gap-1 text-sm shadow transition-colors" style={{ background: 'var(--celadon-deep)' }}>
+                <Plus className="w-4 h-4" /> 新增紀錄
+              </button>
+            </div>
+
+            {renderFilterBar('evals')}
+
+            {unevaluatedTeas.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-amber-700 mb-2">待定調的新茶</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {unevaluatedTeas.map(tea => (
+                    <div key={tea.id} className="bg-amber-50 border border-amber-200 p-3 rounded-xl">
+                      <div className="font-bold text-sm text-stone-800 truncate" title={getDisplayName(tea)}>{getDisplayName(tea)}</div>
+                      <button onClick={() => { setNewEval({ ...DEFAULT_EVAL_FORM, teaId: tea.id }); setShowAddEval(true); }} className="mt-2 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs py-1.5 rounded-lg font-bold transition-colors">
+                        進行品鑑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-xs font-bold text-stone-500 mb-2">已建立的茶葉品鑑庫</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+                {evals.filter(ev => { const tea = teas.find(t => t.id === ev.teaId); return tea && teaPassesFilter('evals', tea, ev.rating); }).map(ev => {
+                  const tea = teas.find(t => t.id === ev.teaId);
+                  if(!tea) return null;
+                  return (
+                    <div key={ev.id} className="bg-white rounded-xl p-4 shadow-sm border border-stone-200 relative">
+                      <button onClick={() => requestDelete('eval', ev.id)} className="absolute top-2 right-2 text-stone-300 hover:text-red-500 p-2"><Trash2 className="w-4 h-4" /></button>
+                      <div className="text-[10px] text-stone-400 mb-1">{ev.date} 紀錄</div>
+
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-stone-800 text-base leading-snug">{getDisplayName(tea)}</h3>
+                        <span className="text-amber-600 font-black text-sm">{ev.rating}</span>
+                      </div>
+
+                      <div className="my-2"><StarRatingDisplay rating={ev.rating} sizeClass="w-4 h-4" /></div>
+
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {ev.treeVarietal && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">{ev.treeVarietal}</span>}
+                        {ev.dryLeafShape && <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">{ev.dryLeafShape}</span>}
+                        {ev.flavors.map(tag => <span key={tag} className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded border border-stone-200">{tag}</span>)}
+                      </div>
+                      {ev.notes && <p className="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-lg leading-relaxed border border-stone-100">{ev.notes}</p>}
+
+                      {(ev.infusedAromaPros || ev.infusedAromaCons) && (
+                        <div className="mt-3 text-xs bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
+                          <div className="flex items-center gap-1 font-bold text-emerald-800 mb-1">
+                            <Leaf className="w-3.5 h-3.5" /> 葉底香氣
+                            <div className="flex gap-0.5 ml-1">
+                              {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < (ev.infusedAromaRating||5) ? 'fill-emerald-500 text-emerald-500' : 'text-stone-300'}`} />)}
+                            </div>
+                          </div>
+                          {ev.infusedAromaPros && <div className="text-emerald-700 leading-relaxed"><span className="font-bold">優:</span> {ev.infusedAromaPros}</div>}
+                          {ev.infusedAromaCons && <div className="text-red-600 mt-1 leading-relaxed"><span className="font-bold">缺:</span> {ev.infusedAromaCons}</div>}
+                        </div>
+                      )}
+
+                      {ev.soupAroma !== undefined && (
+                        <ReadOnlyTeaSoupEvalChart evalData={ev} isBlackTea={tea.type === 'black'} />
+                      )}
+
+                      {(ev.infusedLeafAppearance || ev.infusedLeafTouch) && (
+                        <div className="mt-3 text-xs bg-stone-50 p-2.5 rounded-lg border border-stone-100">
+                          <div className="flex items-center gap-1 font-bold text-stone-700 mb-1">
+                            <Leaf className="w-3.5 h-3.5 text-stone-500" /> 葉底表現
+                            <div className="flex gap-0.5 ml-1">
+                              {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < (ev.infusedLeafRating||5) ? 'fill-emerald-500 text-emerald-500' : 'text-stone-300'}`} />)}
+                            </div>
+                          </div>
+                          {ev.infusedLeafAppearance && <div className="text-stone-600 leading-relaxed"><span className="font-bold">外觀:</span> {ev.infusedLeafAppearance}</div>}
+                          {ev.infusedLeafTouch && <div className="text-stone-600 mt-1 leading-relaxed"><span className="font-bold">觸感:</span> {ev.infusedLeafTouch}</div>}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 3: 品茗時光 --- */}
+        {activeTab === 'logs' && (
+          <div className="space-y-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2"><Coffee className="w-6 h-6" style={{ color: 'var(--celadon)' }} /> 品茗時光</h2>
+              <button onClick={() => {
+                if(teas.length > 0) {
+                  const firstTeaInfo = getTeaContextForLog(teas[0].id);
+                  const es = firstTeaInfo.evaluation?.dryLeafShape || '條形';
+                  const bt = getBrewTimeSec(es);
+                  const now = new Date();
+                  setNewLog({ teaId: teas[0].id, brewMode: 'single', ratio: 50, brewTemp: 100, dryShape: es, brewTime: bt, wareIds: [], temp: 100, duration: bt, waterAmount: 150, teaAmount: 5, notes: '', logDate: now.toISOString().split('T')[0], logTime: now.toTimeString().substring(0,5), weather: '', place: '', mood: '', company: '', soupPhoto: '', soupAroma: 5, soupSweet: 5, soupSour: 5, soupUmami: 5, soupAstringent: 5, soupPuckering: 5, soupBright: 5, soupBalance: 5, brews: [makeBrew(100)] });
+                  setLogStep(1);
+                  setBrewPanels({});
+                  setEditingLogId(null);
+                  setShowAddLog(true);
+                }
+              }} className="text-white py-2 px-4 rounded-full flex items-center gap-1 text-sm shadow transition-colors" style={{ background: 'var(--celadon-deep)' }}>
+                <Plus className="w-4 h-4" /> 新增紀錄
+              </button>
+            </div>
+
+            {renderFilterBar('logs')}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+              {logs.filter(log => { const tea = teas.find(t => t.id === log.teaId); return tea && teaPassesFilter('logs', tea, getTeaRating(log.teaId)); }).map(log => {
+                const tea = teas.find(t => t.id === log.teaId);
+                if (!tea) return null;
+                return (
+                  <div key={log.id} className="bg-white rounded-xl p-4 shadow-sm border border-stone-200 relative">
+                    <div className="absolute top-2 right-2 flex gap-1 bg-white/80 backdrop-blur-sm rounded-lg">
+                      <button onClick={() => handleEditLog(log, 2)} title="編輯感想" className="text-stone-300 hover:text-emerald-600 p-1.5"><MessageCircle className="w-4 h-4" /></button>
+                      <button onClick={() => handleEditLog(log, 1)} title="編輯參數" className="text-stone-300 hover:text-emerald-600 p-1.5"><Kettle className="w-4 h-4" /></button>
+                      <button onClick={() => requestDelete('log', log.id)} title="刪除" className="text-stone-300 hover:text-red-500 p-1.5"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                    <div className="text-[10px] text-stone-400 mb-1 pr-24">{log.date} {log.time}</div>
+                    <h3 className="font-bold text-stone-800 text-base leading-snug flex items-center gap-2 flex-wrap pr-24">
+                      {getDisplayName(tea)}
+                      {log.brewMode && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${log.brewMode === 'multi' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600'}`}>
+                          {log.brewMode === 'multi' ? '多次萃取' : '單次萃取'}
+                        </span>
+                      )}
+                    </h3>
+                    {log.brewMode !== 'multi' ? (
+                      <div className={`grid ${log.brewMode === 'single' && log.ratio ? 'grid-cols-5' : 'grid-cols-4'} gap-2 py-2 text-center text-xs mt-3 bg-stone-50 rounded-lg border border-stone-100`}>
+                        {log.brewMode === 'single' && log.ratio && <div><span className="text-stone-400 block text-[10px]">茶水比</span>1:{log.ratio}</div>}
+                        <div className={log.brewMode === 'single' && log.ratio ? 'border-l border-stone-200' : ''}><span className="text-stone-400 block text-[10px]">水溫</span>{log.temp}°C</div>
+                        <div className="border-l border-stone-200"><span className="text-stone-400 block text-[10px]">時間</span>{log.duration}s</div>
+                        <div className="border-l border-stone-200"><span className="text-stone-400 block text-[10px]">水量</span>{log.waterAmount}ml</div>
+                        <div className="border-l border-stone-200"><span className="text-stone-400 block text-[10px]">茶葉</span>{log.teaAmount}g</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="grid grid-cols-3 gap-2 py-2 text-center text-xs mt-3 bg-stone-50 rounded-lg border border-stone-100">
+                          {log.ratio && <div><span className="text-stone-400 block text-[10px]">茶水比</span>1:{log.ratio}</div>}
+                          <div className={log.ratio ? 'border-l border-stone-200' : ''}><span className="text-stone-400 block text-[10px]">水量</span>{log.waterAmount}ml</div>
+                          <div className="border-l border-stone-200"><span className="text-stone-400 block text-[10px]">茶葉</span>{log.teaAmount}g</div>
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const ids = log.wareIds || (log.wareId ? [log.wareId] : []);
+                      const list = ids.map(id => wares.find(w => w.id === id)).filter(Boolean);
+                      if (list.length === 0) return null;
+                      return (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {list.map(ware => (
+                            <div key={ware.id} className="flex items-center gap-2 bg-stone-50 border border-stone-100 rounded-lg p-2">
+                              <div className="w-9 h-9 rounded-md bg-stone-100 overflow-hidden flex items-center justify-center shrink-0">
+                                {ware.image ? <img src={ware.image} alt={wareDisplayName(ware)} className="w-full h-full object-cover" /> : <Coffee className="w-4 h-4 text-stone-300" />}
+                              </div>
+                              <span className="text-xs text-stone-600 font-medium">{wareDisplayName(ware)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    {log.brewMode === 'multi' && (log.brews || []).filter(b => b.done || b.temp).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {(log.brews || []).map((b, i) => {
+                          const bkey = `${log.id}-${i}`;
+                          const open = !!expandedBrews[bkey];
+                          const hasDetail = b.soupAroma !== undefined || b.note;
+                          return (
+                            <div key={i} className="bg-white border border-stone-100 rounded-lg overflow-hidden">
+                              <button type="button" onClick={() => hasDetail && setExpandedBrews(prev => ({ ...prev, [bkey]: !prev[bkey] }))} className={`w-full flex items-center justify-between text-xs px-3 py-1.5 ${hasDetail ? 'hover:bg-stone-50 cursor-pointer' : 'cursor-default'}`}>
+                                <span className="font-bold text-emerald-700">第{i + 1}泡</span>
+                                <span className="flex items-center gap-1.5 text-stone-500">
+                                  <span>{b.temp}°C · {Math.floor(b.time/60)}:{String(b.time%60).padStart(2,'0')}</span>
+                                  {hasDetail && (open ? <ChevronUp className="w-3.5 h-3.5 text-stone-400" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-400" />)}
+                                </span>
+                              </button>
+                              {open && hasDetail && (
+                                <div className="px-3 pb-2.5 border-t border-stone-100 pt-2 animate-in fade-in slide-in-from-top-1">
+                                  {b.soupAroma !== undefined && (
+                                    <ReadOnlyTeaSoupEvalChart evalData={b} isBlackTea={tea.type === 'black'} title={`第${i + 1}泡茶湯`} hideRating={true} />
+                                  )}
+                                  {b.note && <div className="mt-2 text-[11px] text-stone-600 bg-stone-50 border border-stone-100 rounded p-2 leading-relaxed">{b.note}</div>}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {(log.weather || log.place || log.mood || log.company) && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {log.weather && <span className="text-[10px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded border border-sky-100">{log.weather}</span>}
+                        {log.place && <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded border border-stone-200 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{log.place}</span>}
+                        {log.mood && <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-100">{log.mood}</span>}
+                        {log.company && <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded border border-stone-200 flex items-center gap-0.5"><User className="w-3 h-3" />{log.company}</span>}
+                      </div>
+                    )}
+                    {log.soupPhoto && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-stone-100">
+                        <img src={log.soupPhoto} alt="茶湯" className="w-full max-h-48 object-cover" />
+                      </div>
+                    )}
+                    {log.brewMode !== 'multi' && log.soupAroma !== undefined && (
+                      <ReadOnlyTeaSoupEvalChart evalData={log} isBlackTea={tea.type === 'black'} title="感想" hideRating={true} />
+                    )}
+                    {log.notes && <div className="mt-3 text-xs text-stone-600 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100 leading-relaxed">{log.notes}</div>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 4: 茶具 --- */}
+        {activeTab === 'wares' && (
+          <div className="space-y-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2"><Beaker className="w-6 h-6" style={{ color: 'var(--celadon)' }} /> 茶具</h2>
+              <button onClick={handleAddNewWare} className="text-white py-2 px-4 rounded-full flex items-center gap-1 text-sm shadow transition-colors" style={{ background: 'var(--celadon-deep)' }}>
+                <Plus className="w-4 h-4" /> 新增茶具
+              </button>
+            </div>
+
+            {wares.length === 0 ? (
+              <div className="text-sm text-stone-400 bg-white border border-stone-200 rounded-xl p-8 text-center">
+                還沒有茶具。點右上角「新增茶具」開始建立。
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+                {wares.map(ware => (
+                  <div key={ware.id} className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden group relative">
+                    <div className="absolute top-2 right-2 flex gap-1 z-10">
+                      <button onClick={() => handleEditWare(ware)} className="bg-white/80 backdrop-blur-sm text-stone-400 hover:text-emerald-600 p-1.5 rounded-lg shadow-sm"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => requestDelete('ware', ware.id)} className="bg-white/80 backdrop-blur-sm text-stone-400 hover:text-red-500 p-1.5 rounded-lg shadow-sm"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <div className="w-full aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
+                      {ware.image ? (
+                        <img src={ware.image} alt={wareDisplayName(ware)} className="w-full h-full object-cover" />
+                      ) : (
+                        <Coffee className="w-10 h-10 text-stone-300" />
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-bold text-sm text-stone-800 leading-snug">{wareDisplayName(ware)}</h3>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {ware.type && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">{ware.type}</span>}
+                        {ware.material && <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded border border-stone-200">{ware.material}</span>}
+                        {ware.capacity && <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded border border-stone-200">{ware.capacity}ml</span>}
+                      </div>
+                      {ware.notes && <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">{ware.notes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-16 pt-8 border-t border-stone-200/60 flex justify-center">
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-1 text-[11px] text-stone-300 hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="w-3 h-3" /> 清除所有資料
+          </button>
+        </div>
+      </main>
+
+      {/* --- Modals --- */}
+      {/* 1. 新增/編輯 茶葉 Modal */}
+      {showAddTea && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-2xl rounded-2xl flex flex-col max-h-[88vh] min-h-0 shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-stone-100 shrink-0">
+              <h3 className="font-bold text-stone-800 flex items-center gap-1"><Leaf className="w-5 h-5 text-emerald-700" /> {isEditingTea ? '編輯茶葉資料' : '新增茶葉資料'}</h3>
+              <button onClick={() => setShowAddTea(false)} className="text-stone-400 hover:text-stone-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1 min-h-0">
+              <form id="tea-form" onSubmit={handleSubmitTea} className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-500">茶行名稱</label>
+                    <input type="text" placeholder="例：張迺妙茶師紀念館" value={teaForm.shop} onChange={e => setTeaForm({...teaForm, shop: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" />
+                  </div>
+                  <div>
+                    <button type="button" onClick={() => setShowAdvancedShop(!showAdvancedShop)} className="text-xs text-amber-700 font-bold flex items-center gap-1 hover:text-amber-800 transition-colors">
+                      {showAdvancedShop ? '− 隱藏茶行詳細資訊' : '+ 展開茶行詳細資訊 (地址、網址、試茶、環境評分)'}
+                    </button>
+                    {showAdvancedShop && (
+                      <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100 mt-2 space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="text-xs font-bold text-stone-500">茶行地址</label><input type="text" placeholder="輸入地址..." value={teaForm.shopAddress} onChange={e => setTeaForm({...teaForm, shopAddress: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                          <div><label className="text-xs font-bold text-stone-500">茶行網站/網址</label><input type="url" placeholder="https://..." value={teaForm.shopUrl || ''} onChange={e => setTeaForm({...teaForm, shopUrl: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="text-xs font-bold text-stone-500">試茶款數</label><input type="number" placeholder="例：3" value={teaForm.tastingTeasCount} onChange={e => setTeaForm({...teaForm, tastingTeasCount: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                          <div><label className="text-xs font-bold text-stone-500">試茶價格 (元)</label><input type="number" placeholder="例：500" value={teaForm.tastingPrice} onChange={e => setTeaForm({...teaForm, tastingPrice: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                        </div>
+                        <div><label className="text-xs font-bold text-stone-500 block mb-1">環境與專業度評分 (上下拖曳調整)</label><ShopEvalChart teaForm={teaForm} setTeaForm={setTeaForm} /></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[2fr_1fr] gap-3 pt-2">
+                    <div><label className="text-xs font-bold text-stone-500">產品名稱 (必填)</label><input required type="text" placeholder="例：鐵觀音白茶" value={teaForm.name} onChange={e => setTeaForm({...teaForm, name: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                    <div><label className="text-xs font-bold text-stone-500">品種</label><input type="text" placeholder="例：鐵觀音" value={teaForm.cultivar} onChange={e => setTeaForm({...teaForm, cultivar: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">製程</label>
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                    {TEA_TYPES.map(type => (
+                      <button key={type.id} type="button" onClick={() => setTeaForm({...teaForm, type: type.id})} className={`py-1.5 px-1 rounded-lg border text-xs ${teaForm.type === type.id ? type.color : 'bg-white text-stone-600'}`}>{type.name}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div><label className="text-xs font-bold text-stone-500">年份</label><select value={teaForm.year} onChange={e => setTeaForm({...teaForm, year: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50">{YEARS.map(y => <option key={y} value={y}>{y}年</option>)}</select></div>
+                  <div><label className="text-xs font-bold text-stone-500">季節</label><select value={teaForm.season} onChange={e => setTeaForm({...teaForm, season: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50">{SEASONS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                  <div><label className="text-xs font-bold text-stone-500">採摘</label><select value={teaForm.harvestMethod} onChange={e => setTeaForm({...teaForm, harvestMethod: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50">{HARVEST_METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                  <div><label className="text-xs font-bold text-stone-500">葉形</label><select value={teaForm.leafCount} onChange={e => setTeaForm({...teaForm, leafCount: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50">{LEAF_COUNTS.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs font-bold text-stone-500">產地</label><input type="text" value={teaForm.origin} onChange={e => setTeaForm({...teaForm, origin: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                  <div><label className="text-xs font-bold text-stone-500">製茶師 (非必填)</label><input type="text" placeholder="例：陳阿發" value={teaForm.teaMaker} onChange={e => setTeaForm({...teaForm, teaMaker: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                </div>
+
+                <div>
+                  <button type="button" onClick={() => setShowAdvancedOrigin(!showAdvancedOrigin)} className="text-xs text-emerald-700 font-bold flex items-center gap-1 hover:text-emerald-800 transition-colors">
+                    {showAdvancedOrigin ? '− 隱藏進階產地資訊' : '+ 展開進階產地資訊 (風土、氣候、蟲害)'}
+                  </button>
+                  {showAdvancedOrigin && (
+                    <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 mt-2 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="text-xs font-bold text-stone-500">山坡面向</label><input type="text" placeholder="例：向陽面、東向" value={teaForm.slopeAspect} onChange={e => setTeaForm({...teaForm, slopeAspect: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-500">生長時有無缺水</label>
+                          <select value={teaForm.waterShortage} onChange={e => setTeaForm({...teaForm, waterShortage: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white">
+                            <option value="">請選擇</option><option value="無缺水">無缺水</option><option value="輕微缺水">輕微缺水</option><option value="中度缺水">中度缺水</option><option value="嚴重缺水">嚴重缺水</option><option value="嚴重旱象">嚴重旱象</option>
+                          </select>
+                        </div>
+                        <div><label className="text-xs font-bold text-stone-500">採收當天天氣</label><input type="text" placeholder="例：晴天、多雲、晨霧" value={teaForm.harvestWeather} onChange={e => setTeaForm({...teaForm, harvestWeather: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                        <div><label className="text-xs font-bold text-stone-500">蟲害狀況</label><input type="text" placeholder="例：小綠葉蟬叮咬、無" value={teaForm.pestDamage} onChange={e => setTeaForm({...teaForm, pestDamage: e.target.value})} className="w-full border border-stone-200 rounded-lg p-2 mt-1 text-sm bg-white" /></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-stone-100 mt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-stone-700 flex items-center gap-1"><Mountain className="w-4 h-4 text-emerald-600" /> 高山茶海拔標示</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={teaForm.hasAltitude} onChange={e => setTeaForm({...teaForm, hasAltitude: e.target.checked})} />
+                      <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+                  {teaForm.hasAltitude && (
+                    <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 mt-2">
+                      <div className="flex justify-between text-xs text-stone-500 mb-2"><span>0m</span><span className="font-bold text-emerald-700">{teaForm.altitude} m</span><span>3500m</span></div>
+                      <input type="range" min="0" max="3500" step="50" value={teaForm.altitude} onChange={e => setTeaForm({...teaForm, altitude: parseInt(e.target.value)})} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-stone-100 space-y-3">
+                  <h4 className="text-xs font-bold text-stone-700">購買資訊</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="text-xs font-bold text-stone-500">價格 (元)</label><input type="number" placeholder="例如：800" value={teaForm.price} onChange={e => setTeaForm({...teaForm, price: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500">單位 / 克數</label>
+                      <select value={teaForm.weightUnit} onChange={e => setTeaForm({...teaForm, weightUnit: e.target.value, customWeight: ''})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50">
+                        <option value="二兩">二兩 (75g)</option><option value="四兩">四兩 (150g)</option><option value="半斤">半斤 (300g)</option><option value="一斤">一斤 (600g)</option><option value="其他">其他自訂...</option>
+                      </select>
+                    </div>
+                  </div>
+                  {teaForm.weightUnit === '其他' && (
+                    <div><label className="text-xs font-bold text-stone-500">自訂單位/克數</label><input type="text" placeholder="例如：100g 或 一餅(357g)" value={teaForm.customWeight} onChange={e => setTeaForm({...teaForm, customWeight: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                  )}
+                </div>
+              </form>
+            </div>
+            <div className="p-4 border-t border-stone-100"><button type="submit" form="tea-form" className="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold transition-colors">儲存</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. 新增品鑑 Modal */}
+      {showAddEval && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-2xl rounded-2xl flex flex-col max-h-[88vh] min-h-0 shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-stone-100 shrink-0 bg-amber-50 rounded-t-2xl">
+              <h3 className="font-bold text-amber-800 flex items-center gap-1"><Award className="w-5 h-5" /> 品鑑流程</h3>
+              <button onClick={() => setShowAddEval(false)} className="text-amber-400 hover:text-amber-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1 min-h-0">
+              <form id="add-eval-form" onSubmit={handleSubmitEval} className="space-y-5">
+                <div>
+                  <label className="text-xs font-bold text-stone-500">選擇茶葉</label>
+                  <select required value={newEval.teaId} onChange={e => setNewEval({...newEval, teaId: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-white font-bold">
+                    <option value="" disabled>請選擇...</option>
+                    {teas.map(t => <option key={t.id} value={t.id}>{getDisplayName(t)}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-4 pt-3 border-t border-stone-100">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 mb-2">茶樹品種</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['大葉種', '小葉種', '原生山茶'].map(v => (
+                        <button key={v} type="button" onClick={() => setNewEval({...newEval, treeVarietal: v})} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newEval.treeVarietal === v ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 mb-2">茶乾辨識</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['條形', '球型', '散茶', '東方美人', '茶磚', '茶餅'].map(shape => (
+                        <button key={shape} type="button" onClick={() => setNewEval({...newEval, dryLeafShape: shape})} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newEval.dryLeafShape === shape ? 'bg-amber-100 text-amber-800 border-amber-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{shape}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {newEval.dryLeafShape && (
+                    <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                      <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-[10px] font-bold text-blue-800 mb-0.5">專屬品鑑泡提示</div>
+                        <div className="text-xs text-blue-700 font-medium">{getTastingHint(newEval.dryLeafShape)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 mb-2">茶乾紀錄照 (選填)</label>
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-stone-300 rounded-xl bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Camera className="w-6 h-6 text-stone-400 mb-1" />
+                        <p className="text-[10px] text-stone-500 font-bold">點擊上傳茶乾照片</p>
+                      </div>
+                      <input type="file" className="hidden" accept="image/*" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <label className="text-xs font-bold text-stone-500">葉底香氣評分</label>
+                    <button type="button" onClick={() => setShowAromaInfo(!showAromaInfo)} className="text-emerald-600 hover:bg-emerald-50 rounded-full p-0.5 transition-colors">
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {showAromaInfo && (
+                    <div className="mb-3 bg-emerald-50/70 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 leading-relaxed">
+                      倒出茶湯需等待茶湯降溫至舒適入口的程度過程需約6分鐘，可在此時時間內品鑒葉底香氣，拿起品鑒杯大力上下晃動3次，品鑒人員朝旁先吐氣一口後拿開蓋子鼻子湊近杯中大力吸氣3次，蓋回杯蓋完成紀錄。
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-600 mb-1">優點</label>
+                      <textarea rows="2" placeholder="香氣優點..." value={newEval.infusedAromaPros || ''} onChange={e => setNewEval({...newEval, infusedAromaPros: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-red-600 mb-1">缺點</label>
+                      <textarea rows="2" placeholder="雜味或缺點..." value={newEval.infusedAromaCons || ''} onChange={e => setNewEval({...newEval, infusedAromaCons: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-500 mb-1.5">總結葉底香氣分數</label>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={`aroma-star-${star}`} type="button" onClick={() => setNewEval({...newEval, infusedAromaRating: star})}>
+                          <Star className={`w-6 h-6 ${star <= (newEval.infusedAromaRating || 5) ? 'text-amber-400 fill-amber-400' : 'text-stone-200'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-100">
+                  <label className="block text-xs font-bold text-stone-500 mb-1">茶湯分數 (上下拖曳調整，點擊對話框可輸入筆記)</label>
+                  <TeaSoupEvalChart
+                    evalData={newEval}
+                    setEvalData={setNewEval}
+                    isBlackTea={teas.find(t => t.id === newEval.teaId)?.type === 'black'}
+                  />
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-bold text-stone-500 mb-1.5">總結茶湯分數</label>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={`soup-star-${star}`} type="button" onClick={() => setNewEval({...newEval, soupRating: star})}>
+                          <Star className={`w-6 h-6 ${star <= (newEval.soupRating || 5) ? 'text-amber-400 fill-amber-400' : 'text-stone-200'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-100">
+                  <label className="text-xs font-bold text-stone-500 mb-2 block">葉底評分</label>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 mb-1">外觀</label>
+                      <textarea rows="2" placeholder="如：葉面破損、發酵度不均、老葉過多…" value={newEval.infusedLeafAppearance || ''} onChange={e => setNewEval({...newEval, infusedLeafAppearance: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 mb-1">觸感</label>
+                      <textarea rows="2" placeholder="如：葉子飽滿渾厚韌性足不易破損" value={newEval.infusedLeafTouch || ''} onChange={e => setNewEval({...newEval, infusedLeafTouch: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-500 mb-1.5">總結葉底評分</label>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={`leaf-star-${star}`} type="button" onClick={() => setNewEval({...newEval, infusedLeafRating: star})}>
+                          <Star className={`w-6 h-6 ${star <= (newEval.infusedLeafRating || 5) ? 'text-amber-400 fill-amber-400' : 'text-stone-200'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-stone-500">品鑑總評分 (自動計算)</label>
+                    <span className="text-amber-600 font-black text-lg">
+                      {((newEval.infusedAromaRating + newEval.soupRating + newEval.infusedLeafRating) / 3).toFixed(1)}
+                    </span>
+                  </div>
+                  <StarRatingDisplay
+                    rating={(newEval.infusedAromaRating + newEval.soupRating + newEval.infusedLeafRating) / 3}
+                    sizeClass="w-8 h-8"
+                    className="gap-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 mb-2">風味輪廓 (可同時展開多分類複選)</label>
+
+                  {newEval.flavors.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      {newEval.flavors.map(tag => (
+                        <span key={`selected-${tag}`} className="text-[10px] bg-amber-600 text-white px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                          {tag}
+                          <button type="button" onClick={() => setNewEval(prev => ({...prev, flavors: prev.flavors.filter(t => t !== tag)}))} className="hover:bg-amber-700 rounded-full p-0.5 transition-colors">
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {Object.keys(FLAVOR_CATEGORIES).map(cat => {
+                      const isActive = activeFlavorCategories.includes(cat);
+                      return (
+                        <button
+                          key={`cat-${cat}`} type="button"
+                          onClick={() => setActiveFlavorCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}
+                          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1 ${isActive ? 'bg-amber-100 text-amber-800 border-amber-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}
+                        >
+                          {cat} {isActive ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {activeFlavorCategories.length > 0 && (
+                    <div className="space-y-2">
+                      {activeFlavorCategories.map(cat => (
+                        <div key={`sub-${cat}`} className="p-3 bg-amber-50/50 border border-amber-100 rounded-lg animate-in fade-in slide-in-from-top-1">
+                          <div className="text-[10px] font-bold text-amber-800 mb-1.5">{cat}選項</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {FLAVOR_CATEGORIES[cat].map(tag => {
+                              const isSelected = newEval.flavors.includes(tag);
+                              return (
+                                <button
+                                  key={`tag-${tag}`} type="button"
+                                  onClick={() => setNewEval(prev => ({...prev, flavors: isSelected ? prev.flavors.filter(t=>t!==tag) : [...prev.flavors, tag]}))}
+                                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${isSelected ? 'bg-amber-500 text-white border-amber-500 font-bold shadow-sm' : 'bg-white text-stone-500 border-stone-200 hover:border-amber-300 hover:text-amber-700'}`}
+                                >
+                                  {tag}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 mb-1">整體品鑑筆記</label>
+                  <textarea rows="4" placeholder="記錄標準泡法下的綜合口感特徵、優缺點..." value={newEval.notes} onChange={e => setNewEval({...newEval, notes: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                </div>
+              </form>
+            </div>
+            <div className="p-4 border-t border-stone-100"><button type="submit" form="add-eval-form" className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl font-bold shadow-md shadow-amber-200/50 transition-colors">儲存品鑑結果</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. 新增日常品茗 Modal */}
+      {showAddLog && (() => {
+        const context = getTeaContextForLog(newLog.teaId);
+        return (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-xl rounded-2xl flex flex-col max-h-[90vh] min-h-0 shadow-2xl">
+              <div className="flex justify-between items-center p-4 border-b border-stone-100 shrink-0">
+                <h3 className="font-bold text-stone-800 flex items-center gap-1">
+                  {logStep === 1 ? (
+                    <><Beaker className="w-5 h-5 text-emerald-700" /> {editingLogId ? '編輯沖泡參數' : '記錄本次沖泡參數'}</>
+                  ) : (
+                    <><Coffee className="w-5 h-5 text-emerald-700" /> {editingLogId ? '編輯品茗時刻' : '品茗時刻'}</>
+                  )}
+                </h3>
+                <button onClick={() => { setShowAddLog(false); setEditingLogId(null); setLogStep(1); }} className="text-stone-400 hover:text-stone-600"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-5 overflow-y-auto flex-1 min-h-0">
+                <form id="add-log-form" onSubmit={(e) => { e.preventDefault(); if (logStep === 1) { setLogStep(2); } else { handleSubmitLog(e); } }} className="space-y-4">
+                  {logStep === 1 && (<React.Fragment>
+                  <div>
+                    <label className="text-xs font-bold text-stone-500">選擇本次沖泡茶葉</label>
+                    <select
+                      value={newLog.teaId}
+                      onChange={e => {
+                        const newContext = getTeaContextForLog(e.target.value);
+                        const es = newContext.evaluation?.dryLeafShape;
+                        const shape = es || newLog.dryShape;
+                        const bt = getBrewTimeSec(shape);
+                        setNewLog({
+                          ...newLog, teaId: e.target.value,
+                          dryShape: shape,
+                          brewTime: bt,
+                          temp: newLog.brewTemp,
+                          duration: bt
+                        });
+                      }}
+                      className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50 font-bold text-stone-800"
+                    >
+                      {teas.length === 0 && <option value="">請先建立茶葉資料</option>}
+                      {teas.map(t => <option key={t.id} value={t.id}>{getDisplayName(t)}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-stone-500 mb-1 block">萃取方式</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ id: 'single', label: '單次萃取' }, { id: 'multi', label: '多次萃取' }].map(m => (
+                        <button
+                          key={m.id} type="button"
+                          onClick={() => setNewLog({...newLog, brewMode: m.id})}
+                          className={`py-2 rounded-lg border text-sm font-bold transition-colors ${newLog.brewMode === m.id ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {newLog.brewMode === 'single' && (() => {
+                    const teaType = context.tea?.type;
+                    const isBlack = teaType === 'black';
+                    const isGreen = teaType === 'green';
+                    const isOolong = teaType === 'oolong';
+                    const isBigLeaf = context.evaluation?.treeVarietal === '大葉種';
+                    // 茶乾形狀：有品鑑紀錄則用品鑑的茶乾辨識，否則用使用者選擇
+                    const evalShape = context.evaluation?.dryLeafShape;
+                    const shape = evalShape || newLog.dryShape;
+                    const shapeFromEval = !!evalShape;
+
+                    return (
+                      <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3 space-y-4">
+                        <div className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Beaker className="w-4 h-4" /> 標準泡法</div>
+
+                        {/* 1. 茶水比 */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-xs font-bold text-stone-600">茶水比</label>
+                            <span className="text-sm font-bold text-emerald-700">1 : {newLog.ratio}</span>
+                          </div>
+                          <input type="range" min="10" max="50" step="1" value={newLog.ratio} onChange={e => {
+                            const ratio = parseInt(e.target.value);
+                            const amt = calcTeaAmount(newLog.wareIds, ratio);
+                            setNewLog({...newLog, ratio, ...(amt != null ? { teaAmount: amt } : {})});
+                          }} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                          <div className="flex justify-between text-[10px] text-stone-400 mt-0.5"><span>1:10 濃</span><span>1:50 淡</span></div>
+                          {(isBlack || isBigLeaf) && (
+                            <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
+                              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span>建議提高茶水比，降低因大葉種與紅茶釋出過快的問題。</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 2. 水溫 */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-xs font-bold text-stone-600">水溫</label>
+                            <span className="text-sm font-bold text-emerald-700">{newLog.brewTemp}°C</span>
+                          </div>
+                          <input type="range" min="60" max="100" step="1" value={newLog.brewTemp} onChange={e => { const v = parseInt(e.target.value); setNewLog({...newLog, brewTemp: v, temp: v}); }} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                          <div className="flex justify-between text-[10px] text-stone-400 mt-0.5"><span>60°C</span><span>100°C</span></div>
+                          {isGreen && (
+                            <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
+                              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span>避免茶中氨基酸破壞降低鮮味，建議降低水溫。</span>
+                            </div>
+                          )}
+                          {isOolong && (
+                            <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
+                              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span>若為高山茶，建議使用開水最大化萃取出香氣分子。</span>
+                            </div>
+                          )}
+                          {isBlack && (
+                            <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-start gap-1.5">
+                              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span>建議降低水溫，避免萃取過快的苦澀味。</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 3. 萃取時間 */}
+                        <div>
+                          <label className="text-xs font-bold text-stone-600 block mb-1">萃取時間</label>
+                          {shapeFromEval ? (
+                            <div className="text-[11px] text-stone-500 mb-1.5">依品鑑茶乾辨識：<span className="font-bold text-stone-700">{shape}</span></div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {['條形', '球型', '散茶', '東方美人', '茶磚', '茶餅'].map(s => (
+                                <button key={s} type="button" onClick={() => { const bt = getBrewTimeSec(s); setNewLog({...newLog, dryShape: s, brewTime: bt, duration: bt}); }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newLog.dryShape === s ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{s}</button>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between bg-white border border-stone-200 rounded-lg px-3 py-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-emerald-600" />
+                              <span className="text-xs text-stone-500">建議 {fmtMMSS(getBrewTimeSec(shape))}</span>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-700">{fmtMMSS(newLog.brewTime)}</span>
+                          </div>
+                          <input type="range" min="30" max="600" step="5" value={newLog.brewTime} onChange={e => { const v = parseInt(e.target.value); setNewLog({...newLog, brewTime: v, duration: v}); }} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                          <div className="flex justify-between text-[10px] text-stone-400 mt-0.5"><span>0:30</span><span>10:00</span></div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+
+                  {context.evaluation ? (
+                    <div className="bg-amber-50 border border-amber-200 text-stone-700 text-xs p-3 rounded-xl">
+                      <div className="flex items-center gap-1 font-bold text-amber-800 mb-1"><Award className="w-4 h-4" /> 品鑑參考</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <StarRatingDisplay rating={context.evaluation.rating} sizeClass="w-3 h-3" className="gap-0.5" />
+                        <span className="text-[10px] font-bold text-amber-600">{context.evaluation.rating}</span>
+                      </div>
+                      <div className="mb-1 text-[10px] text-amber-700/80">{context.evaluation.flavors.join('、')}</div>
+                      <p className="text-stone-600 line-clamp-2">{context.evaluation.notes}</p>
+                    </div>
+                  ) : (
+                    context.tea && <div className="bg-stone-50 text-stone-500 text-xs p-2 rounded-lg border border-stone-200">此茶葉尚未進行標準品鑑。預設載入茶類基本參數。</div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-bold text-stone-500 mb-1.5 block">使用茶具 (可複選)</label>
+                    {wares.length === 0 ? (
+                      <div className="text-xs text-stone-400 bg-stone-50 border border-stone-200 rounded-lg p-3">
+                        尚未建立茶具，可至「茶具」分頁新增。
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {wares.map(w => {
+                          const sel = (newLog.wareIds || []).includes(w.id);
+                          return (
+                            <button
+                              key={w.id} type="button"
+                              onClick={() => {
+                                const cur = newLog.wareIds || [];
+                                const next = sel ? cur.filter(id => id !== w.id) : [...cur, w.id];
+                                const amt = calcTeaAmount(next, newLog.ratio);
+                                const water = calcWaterAmount(next);
+                                setNewLog({...newLog, wareIds: next, ...(amt != null ? { teaAmount: amt } : {}), ...(water != null ? { waterAmount: water } : {})});
+                              }}
+                              className={`relative shrink-0 w-24 rounded-xl border p-2 text-center transition-colors ${sel ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300' : 'border-stone-200 bg-white hover:bg-stone-50'}`}
+                            >
+                              {sel && <span className="absolute top-1 right-1 bg-emerald-600 text-white rounded-full p-0.5"><Check className="w-3 h-3" /></span>}
+                              <div className="w-full h-16 rounded-lg bg-stone-100 overflow-hidden flex items-center justify-center mb-1">
+                                {w.image ? (
+                                  <img src={w.image} alt={wareDisplayName(w)} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Coffee className="w-6 h-6 text-stone-300" />
+                                )}
+                              </div>
+                              <div className="text-[10px] font-bold text-stone-700 leading-tight line-clamp-2">{wareDisplayName(w)}</div>
+                              {(w.type === '壺' || w.type === '蓋碗') && w.capacity && (
+                                <div className="text-[9px] text-stone-400 mt-0.5">{w.capacity}ml</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {(() => {
+                      const amt = calcTeaAmount(newLog.wareIds, newLog.ratio);
+                      if (amt != null) {
+                        const w = wares.find(x => x.id === newLog.wareIds[0]);
+                        return (
+                          <div className="mt-2 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-2 flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5 shrink-0" />
+                            <span>依 {wareDisplayName(w)} {w.capacity}ml ÷ 茶水比 1:{newLog.ratio}，建議投茶量 <b>{amt}g</b>（已帶入下方投葉量）</span>
+                          </div>
+                        );
+                      }
+                      if ((newLog.wareIds || []).length > 1) {
+                        return <div className="mt-2 text-[11px] text-stone-400">複選多個茶具時不自動計算投茶量。</div>;
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {newLog.brewMode === 'multi' && (
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-bold text-stone-600">茶水比</label>
+                        <span className="text-sm font-bold text-emerald-700">1 : {newLog.ratio}</span>
+                      </div>
+                      <input type="range" min="10" max="50" step="1" value={newLog.ratio} onChange={e => {
+                        const ratio = parseInt(e.target.value);
+                        const amt = calcTeaAmount(newLog.wareIds, ratio);
+                        setNewLog({...newLog, ratio, ...(amt != null ? { teaAmount: amt } : {})});
+                      }} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                      <div className="flex justify-between text-[10px] text-stone-400 mt-0.5"><span>1:10 濃</span><span>1:50 淡</span></div>
+                    </div>
+                  )}
+
+                  {newLog.brewMode === 'single' && (
+                    <div className="text-[11px] text-stone-400 mt-2 -mb-1">水溫、時間、注水量已依上方標準泡法與所選茶具帶入，可手動微調。</div>
+                  )}
+                  {newLog.brewMode === 'multi' && (
+                    <div className="text-[11px] text-stone-400 mt-2 -mb-1">多次萃取每一泡各自設定水溫與時間；以下為注水量與投茶量。</div>
+                  )}
+                  <div className={`grid ${newLog.brewMode === 'single' ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'} gap-3 mt-4`}>
+                    {newLog.brewMode === 'single' && <div><label className="text-xs font-bold text-stone-500">水溫 (°C)</label><input type="number" value={newLog.temp} onChange={e => setNewLog({...newLog, temp: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>}
+                    {newLog.brewMode === 'single' && <div><label className="text-xs font-bold text-stone-500">時間 (秒)</label><input type="number" value={newLog.duration} onChange={e => setNewLog({...newLog, duration: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>}
+                    <div><label className="text-xs font-bold text-stone-500">注水量 (ml)</label><input type="number" value={newLog.waterAmount} onChange={e => setNewLog({...newLog, waterAmount: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                    <div><label className="text-xs font-bold text-stone-500">投葉量 (g)</label><input type="number" step="0.1" value={newLog.teaAmount} onChange={e => setNewLog({...newLog, teaAmount: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                  </div>
+
+                  {newLog.brewMode === 'multi' && (
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3 space-y-4">
+                      <div className="text-xs font-bold text-emerald-800 flex items-center gap-1"><Beaker className="w-4 h-4" /> 各泡參數</div>
+
+                      {/* 各泡區塊 */}
+                      <div className="space-y-2">
+                        {(newLog.brews || []).map((brew, idx) => {
+                          const setBrew = (patch) => {
+                            const next = (newLog.brews || []).map((b, i) => i === idx ? { ...b, ...patch } : b);
+                            setNewLog({ ...newLog, brews: next });
+                          };
+                          const setBrewFn = (updater) => {
+                            const next = (newLog.brews || []).map((b, i) => i === idx ? updater(b) : b);
+                            setNewLog({ ...newLog, brews: next });
+                          };
+                          const removeBrew = () => {
+                            const next = (newLog.brews || []).filter((_, i) => i !== idx);
+                            setNewLog({ ...newLog, brews: next });
+                          };
+                          const panel = brewPanels[idx];
+                          const togglePanel = (name) => setBrewPanels(prev => ({ ...prev, [idx]: prev[idx] === name ? null : name }));
+                          const prevBrew = idx > 0 ? (newLog.brews || [])[idx - 1] : null;
+                          const evalRef = context.evaluation;
+
+                          // 感想編輯面板（評分+文字），供 setEvalData 使用的代理物件
+                          const brewEvalProxy = brew;
+                          const setBrewEval = (updaterOrObj) => {
+                            if (typeof updaterOrObj === 'function') {
+                              setBrewFn(b => ({ ...b, ...updaterOrObj(b) }));
+                            } else {
+                              setBrewFn(b => ({ ...b, ...updaterOrObj }));
+                            }
+                          };
+
+                          if (brew.done) {
+                            return (
+                              <div key={idx} className="bg-white border border-stone-200 rounded-xl px-3 py-2.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-bold text-emerald-700">第{idx + 1}泡</span>
+                                    <span className="text-stone-300">·</span>
+                                    <span className="text-stone-600">{brew.temp}°C</span>
+                                    <span className="text-stone-300">·</span>
+                                    <span className="text-stone-600">{fmtMMSS(brew.time)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button type="button" onClick={() => togglePanel('note')} title="品飲感想" className={`p-1.5 rounded-full transition-colors ${brew.note ? 'bg-emerald-600 text-white shadow-sm' : panel === 'note' ? 'text-emerald-600 bg-emerald-50' : 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50'}`}><MessageCircle className="w-3.5 h-3.5" /></button>
+                                    <button type="button" onClick={() => setBrew({ done: false })} className="text-stone-400 hover:text-emerald-600 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
+                                    {(newLog.brews || []).length > 1 && <button type="button" onClick={removeBrew} className="text-stone-400 hover:text-red-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>}
+                                  </div>
+                                </div>
+                                {panel === 'note' && (
+                                  <div className="mt-3 pt-3 border-t border-stone-100 space-y-3 animate-in fade-in slide-in-from-top-1">
+                                    <div>
+                                      <label className="text-[11px] font-bold text-stone-500 mb-1 block">感想 (茶湯表現，上下滑動調整分數)</label>
+                                      <TeaSoupEvalChart evalData={brewEvalProxy} setEvalData={setBrewEval} isBlackTea={context.tea?.type === 'black'} hideNotes={true} />
+                                    </div>
+                                    <div>
+                                      <label className="text-[11px] font-bold text-stone-500 mb-1 block">品茗感想</label>
+                                      <textarea rows="3" placeholder="這一泡的香氣、滋味與感受..." value={brew.note || ''} onChange={e => setBrew({ note: e.target.value })} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={idx} className="bg-white border border-emerald-200 rounded-xl p-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-emerald-800">第{idx + 1}泡</span>
+                                <div className="flex items-center gap-1">
+                                  {(idx === 0 && evalRef && evalRef.soupAroma !== undefined) && (
+                                    <button type="button" onClick={() => togglePanel('ref')} title="參考品鑑茶湯表現" className={`p-1 rounded ${panel === 'ref' ? 'text-amber-600' : 'text-stone-400 hover:text-amber-600'}`}><Info className="w-4 h-4" /></button>
+                                  )}
+                                  {(idx > 0 && prevBrew) && (
+                                    <button type="button" onClick={() => togglePanel('ref')} title={`參考第${idx}泡表現`} className={`p-1 rounded ${panel === 'ref' ? 'text-amber-600' : 'text-stone-400 hover:text-amber-600'}`}><Info className="w-4 h-4" /></button>
+                                  )}
+                                  {(newLog.brews || []).length > 1 && <button type="button" onClick={removeBrew} className="text-stone-400 hover:text-red-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>}
+                                </div>
+                              </div>
+
+                              {panel === 'ref' && idx === 0 && evalRef && (
+                                <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-2.5 animate-in fade-in slide-in-from-top-1">
+                                  <div className="text-[11px] font-bold text-amber-800 mb-1">品鑑參考 · 茶湯表現</div>
+                                  <ReadOnlyTeaSoupEvalChart evalData={evalRef} isBlackTea={context.tea?.type === 'black'} title="品鑑茶湯" />
+                                  {evalRef.notes && <div className="mt-2 text-[11px] text-stone-600 bg-white border border-amber-100 rounded p-2">{evalRef.notes}</div>}
+                                </div>
+                              )}
+                              {panel === 'ref' && idx > 0 && prevBrew && (
+                                <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-2.5 animate-in fade-in slide-in-from-top-1">
+                                  <div className="text-[11px] font-bold text-amber-800 mb-1">第{idx}泡參考 · {prevBrew.temp}°C · {fmtMMSS(prevBrew.time)}</div>
+                                  <ReadOnlyTeaSoupEvalChart evalData={prevBrew} isBlackTea={context.tea?.type === 'black'} title={`第${idx}泡茶湯`} hideRating={true} />
+                                  {prevBrew.note && <div className="mt-2 text-[11px] text-stone-600 bg-white border border-amber-100 rounded p-2">{prevBrew.note}</div>}
+                                </div>
+                              )}
+
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <label className="text-[11px] font-bold text-stone-600">水溫</label>
+                                  <span className="text-xs font-bold text-emerald-700">{brew.temp}°C</span>
+                                </div>
+                                <input type="range" min="60" max="100" step="1" value={brew.temp} onChange={e => setBrew({ temp: parseInt(e.target.value) })} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <label className="text-[11px] font-bold text-stone-600">萃取時間</label>
+                                  <span className="text-xs font-bold text-emerald-700">{fmtMMSS(brew.time)}</span>
+                                </div>
+                                <input type="range" min="1" max="300" step="1" value={brew.time} onChange={e => setBrew({ time: parseInt(e.target.value) })} className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                                <div className="flex justify-between text-[10px] text-stone-400 mt-0.5"><span>0:01</span><span>5:00</span></div>
+                              </div>
+                              <button type="button" onClick={() => setBrew({ done: true })} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1">
+                                <Check className="w-4 h-4" /> 完成第{idx + 1}泡
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* 新增下一泡 */}
+                      <button type="button" onClick={() => {
+                        const prev = (newLog.brews || []);
+                        const last = prev[prev.length - 1];
+                        const next = [...prev, makeBrew(last ? last.temp : 100)];
+                        setNewLog({ ...newLog, brews: next });
+                      }} className="w-full border-2 border-dashed border-emerald-300 text-emerald-700 hover:bg-emerald-50 py-2 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1">
+                        <Plus className="w-4 h-4" /> 新增第{(newLog.brews || []).length + 1}泡
+                      </button>
+                    </div>
+                  )}
+
+                  </React.Fragment>)}
+
+                  {logStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3">
+                        <div className="text-xs font-bold text-emerald-800 mb-1">本次沖泡</div>
+                        <div className="text-sm font-bold text-stone-800">{context.tea ? getDisplayName(context.tea) : ''}</div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {newLog.ratio && <span className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">茶水比 1:{newLog.ratio}</span>}
+                          {newLog.brewMode === 'single' && <span className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">{newLog.temp}°C</span>}
+                          <span className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">{newLog.waterAmount}ml</span>
+                          <span className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">{newLog.teaAmount}g</span>
+                          {newLog.brewMode === 'multi' && <span className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">{(newLog.brews || []).length} 泡</span>}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="text-xs font-bold text-stone-500">日期</label><input type="date" value={newLog.logDate} onChange={e => setNewLog({...newLog, logDate: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                        <div><label className="text-xs font-bold text-stone-500">時間</label><input type="time" value={newLog.logTime} onChange={e => setNewLog({...newLog, logTime: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 mb-1.5 block">天氣</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {WEATHER_OPTIONS.map(w => (
+                            <button key={w} type="button" onClick={() => setNewLog({...newLog, weather: newLog.weather === w ? '' : w})} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newLog.weather === w ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{w}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500">地點</label>
+                        <input type="text" placeholder="例：家中、辦公室、某茶館" value={newLog.place} onChange={e => setNewLog({...newLog, place: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 mb-1.5 block">心情</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {MOOD_OPTIONS.map(m => (
+                            <button key={m} type="button" onClick={() => setNewLog({...newLog, mood: newLog.mood === m ? '' : m})} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${newLog.mood === m ? 'bg-amber-100 text-amber-800 border-amber-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{m}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500">同飲的人</label>
+                        <input type="text" placeholder="例：獨酌、與家人、好友小聚" value={newLog.company} onChange={e => setNewLog({...newLog, company: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 mb-1.5 block">茶湯照片</label>
+                        <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-stone-300 rounded-xl bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors overflow-hidden">
+                          {newLog.soupPhoto ? (
+                            <img src={newLog.soupPhoto} alt="茶湯" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center">
+                              <Camera className="w-7 h-7 text-stone-400 mb-1" />
+                              <p className="text-[11px] text-stone-500 font-bold">點擊上傳茶湯照片</p>
+                            </div>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={handleSoupPhoto} />
+                        </label>
+                        {newLog.soupPhoto && (
+                          <button type="button" onClick={() => setNewLog({...newLog, soupPhoto: ''})} className="text-[11px] text-red-500 hover:text-red-600 mt-1.5">移除照片</button>
+                        )}
+                      </div>
+
+                      {newLog.brewMode === 'single' && (
+                        <div>
+                          <label className="text-xs font-bold text-stone-500 mb-1 block">感想 (茶湯表現，上下滑動調整分數)</label>
+                          <TeaSoupEvalChart
+                            evalData={newLog}
+                            setEvalData={setNewLog}
+                            isBlackTea={context.tea?.type === 'black'}
+                            hideNotes={true}
+                          />
+                        </div>
+                      )}
+
+                      {newLog.brewMode === 'multi' && (
+                        <div>
+                          <label className="text-xs font-bold text-stone-500 mb-2 block">各泡茶湯表現與感想</label>
+                          <div className="space-y-3">
+                            {(newLog.brews || []).map((b, i) => (
+                              <div key={i} className="bg-stone-50 border border-stone-100 rounded-xl p-3">
+                                <div className="flex items-center gap-2 text-sm mb-1">
+                                  <span className="font-bold text-emerald-700">第{i + 1}泡</span>
+                                  <span className="text-stone-300">·</span>
+                                  <span className="text-stone-600 text-xs">{b.temp}°C</span>
+                                  <span className="text-stone-300">·</span>
+                                  <span className="text-stone-600 text-xs">{fmtMMSS(b.time)}</span>
+                                </div>
+                                <ReadOnlyTeaSoupEvalChart evalData={b} isBlackTea={context.tea?.type === 'black'} title={`第${i + 1}泡茶湯`} hideRating={true} />
+                                {b.note && <div className="mt-2 text-[11px] text-stone-600 bg-white border border-stone-100 rounded p-2 leading-relaxed">{b.note}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 mb-1 block">品茗感想筆記</label>
+                        <textarea rows="5" placeholder="記錄這泡茶的香氣、滋味、當下的心情與感受..." value={newLog.notes} onChange={e => setNewLog({...newLog, notes: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-sm" />
+                      </div>
+                    </div>
+                  )}
+                </form>
+              </div>
+              <div className="p-4 border-t border-stone-100 flex gap-3">
+                {logStep === 2 && (
+                  <button type="button" onClick={() => setLogStep(1)} className="px-4 py-3 rounded-xl bg-stone-100 text-stone-600 font-bold hover:bg-stone-200 transition-colors">上一步</button>
+                )}
+                <button type="submit" form="add-log-form" className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold transition-colors">
+                  {logStep === 1 ? '下一步：品茗時刻' : '完成並儲存'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 茶具 新增/編輯 Modal */}
+      {showAddWare && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl flex flex-col max-h-[90vh] min-h-0 shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-stone-100 shrink-0">
+              <h3 className="font-bold text-stone-800 flex items-center gap-1"><Beaker className="w-5 h-5 text-emerald-700" /> {isEditingWare ? '編輯茶具' : '新增茶具'}</h3>
+              <button onClick={() => setShowAddWare(false)} className="text-stone-400 hover:text-stone-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1 min-h-0">
+              <form id="ware-form" onSubmit={handleSubmitWare} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-stone-500 mb-1.5 block">茶具照片</label>
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-stone-300 rounded-xl bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors overflow-hidden">
+                    {wareForm.image ? (
+                      <img src={wareForm.image} alt="預覽" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <Camera className="w-7 h-7 text-stone-400 mb-1" />
+                        <p className="text-[11px] text-stone-500 font-bold">點擊上傳照片</p>
+                      </div>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={handleWareImage} />
+                  </label>
+                  {wareForm.image && (
+                    <button type="button" onClick={() => setWareForm({...wareForm, image: ''})} className="text-[11px] text-red-500 hover:text-red-600 mt-1.5">移除照片</button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-500">品牌</label>
+                    <input type="text" placeholder="例：陶作坊" value={wareForm.brand} onChange={e => setWareForm({...wareForm, brand: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-500">商品名 (必填)</label>
+                    <input required type="text" placeholder="例：焱水平壺" value={wareForm.product} onChange={e => setWareForm({...wareForm, product: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">類型</label>
+                  <div className="flex flex-wrap gap-2">
+                    {WARE_TYPES.map(t => (
+                      <button key={t} type="button" onClick={() => setWareForm({...wareForm, type: t})} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${wareForm.type === t ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}`}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs font-bold text-stone-500">材質</label><input type="text" placeholder="例：陶土、瓷、玻璃" value={wareForm.material} onChange={e => setWareForm({...wareForm, material: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                  <div><label className="text-xs font-bold text-stone-500">容量 (ml)</label><input type="number" placeholder="例：150" value={wareForm.capacity} onChange={e => setWareForm({...wareForm, capacity: e.target.value})} className="w-full border rounded-lg p-2 mt-1 text-sm bg-stone-50" /></div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-500">備註</label>
+                  <textarea rows="3" placeholder="例：導熱快，適合烏龍..." value={wareForm.notes} onChange={e => setWareForm({...wareForm, notes: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 mt-1 text-sm" />
+                </div>
+              </form>
+            </div>
+            <div className="p-4 border-t border-stone-100"><button type="submit" form="ware-form" className="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold transition-colors">儲存</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. 刪除確認 Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-stone-800 mb-2">確定要刪除嗎？</h3>
+            <p className="text-sm text-stone-500 mb-6">這個動作無法復原，請確認是否要刪除這筆資料。</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 rounded-xl bg-stone-100 text-stone-600 font-bold hover:bg-stone-200 transition-colors">取消</button>
+              <button onClick={confirmDelete} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-md shadow-red-500/20 transition-colors">確認刪除</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 分享卡片 Modal — 宋式美學 */}
+      {shareCard && (() => {
+        const typeInfo = TEA_TYPES.find(t => t.id === shareCard.type);
+        const t = shareCard;
+        const hasShopDetail = t.shopAddress || t.shopUrl || t.tastingPrice || t.shopProfessionalism !== undefined;
+        // 宋式素雅用色
+        const paper = '#f4efe4';      // 宣紙米白
+        const ink = '#3a352c';        // 墨
+        const inkSoft = '#8c8472';    // 淡墨
+        const celadon = '#7a9a86';    // 青瓷
+        const seal = '#9c4a3c';       // 朱印
+        const line = '#d8cfba';       // 淡欄線
+
+        return (
+          <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-[70] p-4" onClick={() => setShareCard(null)}>
+            <div onClick={e => e.stopPropagation()} className="flex flex-col items-center">
+              {/* 卡片本體（截圖區） */}
+              <div id="share-card-capture" className="font-shoujin w-[330px] overflow-hidden" style={{ background: paper, color: ink, boxShadow: '0 20px 50px rgba(0,0,0,0.45)' }}>
+                {!cardFlipped ? (
+                  /* 茶 — 茶葉 */
+                  <div className="relative flex flex-col" style={{ minHeight: 470, padding: '34px 30px' }}>
+                    {/* 外框細線 */}
+                    <div className="absolute pointer-events-none" style={{ inset: 12, border: `1px solid ${line}` }} />
+                    <div className="relative" style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 11, letterSpacing: 4, color: celadon, marginBottom: 14 }}>{typeInfo?.name || '茶'}</div>
+                      <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.35, letterSpacing: 2 }}>{t.name}</h2>
+                    </div>
+
+                    <div className="relative flex-1" style={{ marginTop: 30 }}>
+                      {[
+                        ['年 份', `${t.year} ${t.season}`],
+                        ['產 地', `${t.origin || '—'}${t.hasAltitude ? ` · ${t.altitude}m` : ''}`],
+                        ...(t.cultivar ? [['品 種', t.cultivar]] : []),
+                        ['採 摘', `${t.harvestMethod} · ${t.leafCount}`],
+                        ...(t.teaMaker ? [['製茶師', t.teaMaker]] : []),
+                        ...(t.price ? [['售 價', `${t.price} 元 / ${t.weightUnit === '其他' ? (t.customWeight || '—') : t.weightUnit}`]] : []),
+                      ].map(([k, v], i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'baseline', padding: '11px 0', borderBottom: `1px solid ${line}` }}>
+                          <span style={{ fontSize: 12, letterSpacing: 2, color: inkSoft, width: 58, flexShrink: 0 }}>{k}</span>
+                          <span style={{ fontSize: 14.5, letterSpacing: 1, textAlign: 'right', flex: 1 }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="relative" style={{ marginTop: 22, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, color: inkSoft }}>
+                      <span style={{ width: 24, height: 1, background: line }} />
+                      <span style={{ fontSize: 10, letterSpacing: 4 }}>三 韻 半 盞</span>
+                      <span style={{ width: 24, height: 1, background: line }} />
+                    </div>
+                  </div>
+                ) : (
+                  /* 肆 — 茶行 */
+                  <div className="relative flex flex-col" style={{ minHeight: 470, padding: '34px 30px' }}>
+                    <div className="absolute pointer-events-none" style={{ inset: 12, border: `1px solid ${line}` }} />
+
+                    <div className="relative" style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 11, letterSpacing: 4, color: celadon, marginBottom: 14 }}>茶 行</div>
+                      <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.35, letterSpacing: 2 }}>{t.shop || '未記名'}</h2>
+                    </div>
+
+                    <div className="relative flex-1" style={{ marginTop: 30 }}>
+                      {hasShopDetail ? (
+                        <>
+                          {t.shopAddress && (
+                            <div style={{ padding: '11px 0', borderBottom: `1px solid ${line}` }}>
+                              <div style={{ fontSize: 12, letterSpacing: 2, color: inkSoft, marginBottom: 4 }}>地 址</div>
+                              <div style={{ fontSize: 14, letterSpacing: 1, lineHeight: 1.6 }}>{t.shopAddress}</div>
+                            </div>
+                          )}
+                          {t.shopUrl && (
+                            <div style={{ padding: '11px 0', borderBottom: `1px solid ${line}` }}>
+                              <div style={{ fontSize: 12, letterSpacing: 2, color: inkSoft, marginBottom: 4 }}>網 址</div>
+                              <div style={{ fontSize: 12.5, letterSpacing: 0.5, lineHeight: 1.6, wordBreak: 'break-all', color: celadon }}>{t.shopUrl}</div>
+                            </div>
+                          )}
+                          {(t.tastingTeasCount || t.tastingPrice) && (
+                            <div style={{ display: 'flex', alignItems: 'baseline', padding: '11px 0', borderBottom: `1px solid ${line}` }}>
+                              <span style={{ fontSize: 12, letterSpacing: 2, color: inkSoft, width: 58, flexShrink: 0 }}>試 茶</span>
+                              <span style={{ fontSize: 14.5, letterSpacing: 1, textAlign: 'right', flex: 1 }}>{t.tastingTeasCount ? `${t.tastingTeasCount} 款` : ''} {t.tastingPrice ? `${t.tastingPrice} 元` : ''}</span>
+                            </div>
+                          )}
+                          {t.shopProfessionalism !== undefined && (
+                            <div style={{ padding: '14px 0 4px' }}>
+                              <div style={{ fontSize: 12, letterSpacing: 2, color: inkSoft, marginBottom: 12, textAlign: 'center' }}>環 境 品 評</div>
+                              <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                {[['專', t.shopProfessionalism], ['潔', t.shopCleanliness], ['適', t.shopComfort]].map(([k, v], i) => (
+                                  <div key={i} style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 22, fontWeight: 700, color: celadon, lineHeight: 1 }}>{v}</div>
+                                    <div style={{ fontSize: 11, letterSpacing: 2, color: inkSoft, marginTop: 6 }}>{k}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ paddingTop: 30, textAlign: 'center', color: inkSoft, fontSize: 13, letterSpacing: 2, lineHeight: 2 }}>素 未 記 名<br/>此 茶 未 載 行 肆</div>
+                      )}
+                    </div>
+
+                    <div className="relative" style={{ marginTop: 22, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, color: inkSoft }}>
+                      <span style={{ width: 24, height: 1, background: line }} />
+                      <span style={{ fontSize: 10, letterSpacing: 4 }}>三 韻 半 盞</span>
+                      <span style={{ width: 24, height: 1, background: line }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 操作列 */}
+              <div className="flex items-center gap-2 mt-5">
+                <button onClick={() => setCardFlipped(f => !f)} className="flex items-center gap-1.5 bg-white text-stone-700 px-4 py-2.5 rounded-full text-sm font-bold shadow hover:bg-stone-100 transition-colors">
+                  <RotateCcw className="w-4 h-4" /> 翻面（{cardFlipped ? '觀茶' : '觀肆'}）
+                </button>
+                <button onClick={handleDownloadCard} className="flex items-center gap-1.5 bg-stone-800 text-white px-4 py-2.5 rounded-full text-sm font-bold shadow hover:bg-stone-700 transition-colors">
+                  <Share2 className="w-4 h-4" /> 下載圖片
+                </button>
+                <button onClick={() => setShareCard(null)} className="flex items-center justify-center w-10 h-10 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="text-white/50 text-[11px] mt-2">點卡片外或 ✕ 關閉 · 點「翻面」觀另一面</div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 5. 清除所有資料確認 Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-stone-800 mb-2">清除所有資料？</h3>
+            <p className="text-sm text-stone-500 mb-6">將刪除所有茶葉、品鑑、品茗紀錄與茶具，並回到初始範例資料。此動作無法復原。</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-2.5 rounded-xl bg-stone-100 text-stone-600 font-bold hover:bg-stone-200 transition-colors">取消</button>
+              <button onClick={confirmReset} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-md shadow-red-500/20 transition-colors">清除全部</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
